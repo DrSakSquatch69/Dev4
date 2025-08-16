@@ -32,7 +32,7 @@ namespace DRAW
                 entt::entity meshEntity = registry.create();
 
                 std::string modelName = model.filename;
-                std::cout << "Adding entity to collection: " << model.name << std::endl;
+                std::cout << "Adding entity to collection: " << modelName << std::endl;
                 GAME::AddEntityToCollection(registry, meshEntity, modelName);
 
                 // Fill out GeometryData

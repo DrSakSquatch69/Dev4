@@ -7,6 +7,7 @@
 #include "GAME/GameComponents.h"
 #include "APP/Window.hpp"
 #include "GAME/ModelManager.h"
+#include "GAME/GameManager.h"
 
 
 // Local routines for specific application behavior
@@ -134,7 +135,7 @@ void GameplayBehavior(entt::registry& registry)
 	// Debug: List all collections in ModelManager
 	std::cout << "Available collections: ";
 	for (const auto& [name, collection] : modelManager.collections) {
-		std::cout << name << "(" << collection.ntities.size() << " entities), ";
+		std::cout << name << "(" << collection.meshEntities.size() << " entities), ";
 	}
 	std::cout << std::endl;
 
@@ -187,7 +188,8 @@ void MainLoopBehavior(entt::registry& registry)
 		}
 		deltaTime = elapsed;
 
-		// TODO : Update Game
+		// Update Game using GameManager
+                GAME::UpdateGameManager(registry, deltaTime);
 
 		closedCount = 0;
 		// find all Windows that are not closed and call "patch" to update them
