@@ -687,7 +687,7 @@ namespace DRAW
                 for (auto entity : renderGroup) {
                         renderGroupSize++;
                 }
-                std::cout << "Render group size: " << renderGroupSize << " entities" << std::endl;
+               // std::cout << "Render group size: " << renderGroupSize << " entities" << std::endl;
                 
                 // Debug: Count all entities with GeometryData and GPUInstance (including those with DoNotRender)
                 auto allEntitiesView = registry.view<GeometryData, GPUInstance>();
@@ -695,7 +695,7 @@ namespace DRAW
                 for (auto entity : allEntitiesView) {
                         allEntitiesCount++;
                 }
-                std::cout << "All entities with GeometryData and GPUInstance: " << allEntitiesCount << std::endl;
+               // std::cout << "All entities with GeometryData and GPUInstance: " << allEntitiesCount << std::endl;
                 
                 // Debug: Count entities with DoNotRender tag
                 auto doNotRenderView = registry.view<GAME::DoNotRender>();
@@ -703,7 +703,7 @@ namespace DRAW
                 for (auto entity : doNotRenderView) {
                         doNotRenderCount++;
                 }
-                std::cout << "Entities with DoNotRender tag: " << doNotRenderCount << std::endl;
+                //std::cout << "Entities with DoNotRender tag: " << doNotRenderCount << std::endl;
 			
 			
 

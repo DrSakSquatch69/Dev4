@@ -32,9 +32,17 @@ namespace DRAW
                 entt::entity meshEntity = registry.create();
 
                 std::string modelName = model.filename;
-                std::cout << "Adding entity to collection: " << modelName << std::endl;
-                GAME::AddEntityToCollection(registry, meshEntity, modelName);
+                std::string collectionName = modelName;
+                size_t lastSlash = collectionName.find_last_of("/\\");
+                if (lastSlash != std::string::npos)
+                    collectionName = collectionName.substr(lastSlash + 1);
 
+                size_t lastDot = collectionName.find_last_of(".");
+                if (lastDot != std::string::npos)
+                    collectionName = collectionName.substr(0, lastDot);
+
+                std::cout << "Adding entity to collection: " << collectionName << std::endl;
+                GAME::AddEntityToCollection(registry, meshEntity, collectionName);
                 // Fill out GeometryData
                 GeometryData geom;
                 geom.indexStart = model.indexStart + mesh.drawInfo.indexOffset;
@@ -61,27 +69,8 @@ namespace DRAW
                 // Add DoNotRender tag to dynamic meshes
                 if (model.isDynamic)
                 {
-                    // Extract just the filename without path or extension
-                    std::string filename = modelName;
-                    size_t lastSlash = filename.find_last_of("/\\");
-                    if (lastSlash != std::string::npos)
-                        filename = filename.substr(lastSlash + 1);
+                    std::cout << "Dynamic model found: " << modelName << " (DoNotRender temporarily disabled)" << std::endl;
 
-                    size_t lastDot = filename.find_last_of(".");
-                    if (lastDot != std::string::npos)
-                        filename = filename.substr(0, lastDot);
-
-                    // Only apply DoNotRender to specific models (like Bullet, Turtle, Cactus)
-                    // but NOT to walls, floor, etc.
-                    if (filename == "Bullet" || filename == "Turtle" || filename == "Cactus")
-                    {
-                        registry.emplace<GAME::DoNotRender>(meshEntity);
-                        std::cout << "Applied DoNotRender to: " << filename << std::endl;
-                    }
-                    else
-                    {
-                        std::cout << "NOT applying DoNotRender to: " << filename << std::endl;
-                    }
                 }
             }
         }
