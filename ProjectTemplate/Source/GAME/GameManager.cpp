@@ -24,7 +24,7 @@ namespace GAME {
     void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
         // Get the input from the registry context
         auto& input = registry.ctx().get<UTIL::Input>();
-        
+
         // Find the player entity
         auto playerView = registry.view<Player, Transform>();
         if (playerView.begin() == playerView.end()) {
@@ -35,29 +35,37 @@ namespace GAME {
         // Get the player entity and its transform
         auto playerEntity = playerView.front();
         auto& transform = registry.get<Transform>(playerEntity);
-        
+
         // Get the GameManager for player speed
         auto& gameManager = registry.ctx().get<GameManager>();
         float speed = gameManager.playerSpeed * deltaTime;
 
         // Check for keyboard input
         unsigned char keyBuffer[256];
-        input.immediateInput.GetState(keyBuffer);
+        // Fix for GetState - it requires a key code and an output float
+        float keyState = 0.0f;
+
+        // Check arrow keys for movement using individual GetState calls
+        float rightKey = 0.0f, leftKey = 0.0f, upKey = 0.0f, downKey = 0.0f;
+        input.immediateInput.GetState(G_KEY_RIGHT, rightKey);
+        input.immediateInput.GetState(G_KEY_LEFT, leftKey);
+        input.immediateInput.GetState(G_KEY_UP, upKey);
+        input.immediateInput.GetState(G_KEY_DOWN, downKey);
 
         // Movement vectors
         GW::MATH::GVECTORF movement = { 0.0f, 0.0f, 0.0f };
 
-        // Check arrow keys for movement
-        if (keyBuffer[G_KEY_RIGHT]) {
+        // Check arrow keys for movement using the key states we retrieved
+        if (rightKey > 0.0f) {
             movement.x += speed;
         }
-        if (keyBuffer[G_KEY_LEFT]) {
+        if (leftKey > 0.0f) {
             movement.x -= speed;
         }
-        if (keyBuffer[G_KEY_UP]) {
+        if (upKey > 0.0f) {
             movement.z += speed;
         }
-        if (keyBuffer[G_KEY_DOWN]) {
+        if (downKey > 0.0f) {
             movement.z -= speed;
         }
 
