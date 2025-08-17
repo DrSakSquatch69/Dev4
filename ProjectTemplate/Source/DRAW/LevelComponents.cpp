@@ -61,7 +61,27 @@ namespace DRAW
                 // Add DoNotRender tag to dynamic meshes
                 if (model.isDynamic)
                 {
-                    registry.emplace<GAME::DoNotRender>(meshEntity); // Updated to use GAME namespace
+                    // Extract just the filename without path or extension
+                    std::string filename = modelName;
+                    size_t lastSlash = filename.find_last_of("/\\");
+                    if (lastSlash != std::string::npos)
+                        filename = filename.substr(lastSlash + 1);
+
+                    size_t lastDot = filename.find_last_of(".");
+                    if (lastDot != std::string::npos)
+                        filename = filename.substr(0, lastDot);
+
+                    // Only apply DoNotRender to specific models (like Bullet, Turtle, Cactus)
+                    // but NOT to walls, floor, etc.
+                    if (filename == "Bullet" || filename == "Turtle" || filename == "Cactus")
+                    {
+                        registry.emplace<GAME::DoNotRender>(meshEntity);
+                        std::cout << "Applied DoNotRender to: " << filename << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << "NOT applying DoNotRender to: " << filename << std::endl;
+                    }
                 }
             }
         }
