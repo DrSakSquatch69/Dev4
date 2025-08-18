@@ -6,8 +6,7 @@
 #include "DRAW/DrawComponents.h"
 #include "GAME/GameComponents.h"
 #include "APP/Window.hpp"
-#include "GAME/ModelManager.h"
-#include "GAME/GameManager.h"
+
 
 
 // Local routines for specific application behavior
@@ -66,7 +65,7 @@ void GraphicsBehavior(entt::registry& registry)
 	int startX = (*config).at("Window").at("xstart").as<int>();
 	int startY = (*config).at("Window").at("ystart").as<int>();
 	registry.emplace<APP::Window>(display,
-		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2"});
+		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 1"});
 
 
 	// Create the input
@@ -117,53 +116,13 @@ void GraphicsBehavior(entt::registry& registry)
 	GW::MATH::GMatrix::InverseF(initialCamera, initialCamera);
 	registry.emplace<DRAW::Camera>(display,
 		DRAW::Camera{ initialCamera });
-
-	GAME::InitializeModelManager(registry);
 }
 
 // This function will be called by the main loop to update the gameplay
 // It will be responsible for updating the VulkanInstances and any other gameplay components
 void GameplayBehavior(entt::registry& registry)
 {
-	// Get the config
 	std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
-
-	// Debug: Check if ModelManager has collections
-	auto& modelManager = registry.ctx().get<GAME::ModelManager>();
-	std::cout << "ModelManager collections count: " << modelManager.collections.size() << std::endl;
-
-	// Debug: List all collections in ModelManager
-	std::cout << "Available collections: ";
-	for (const auto& [name, collection] : modelManager.collections) {
-		std::cout << name << "(" << collection.meshEntities.size() << " entities), ";
-	}
-	std::cout << std::endl;
-
-	// Get model names from config
-	std::string playerModelName = (*config).at("Player").at("model").as<std::string>();
-	std::string enemyModelName = (*config).at("Enemy1").at("model").as<std::string>();
-
-	std::cout << "Player model name from config: " << playerModelName << std::endl;
-	std::cout << "Enemy model name from config: " << enemyModelName << std::endl;
-
-	// Create the Player entity
-	entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
-	registry.emplace<GAME::Player>(playerEntity); // Add Player tag
-
-	// Debug: Check Player mesh collection
-	auto& playerMeshes = registry.get<GAME::MeshCollection>(playerEntity);
-	std::cout << "Player has " << playerMeshes.meshEntities.size() << " mesh entities" << std::endl;
-
-	// Create the Enemy entity
-	entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
-	registry.emplace<GAME::Enemy>(enemyEntity); // Add Enemy tag
-
-	// Debug: Check Enemy mesh collection
-	auto& enemyMeshes = registry.get<GAME::MeshCollection>(enemyEntity);
-	std::cout << "Enemy has " << enemyMeshes.meshEntities.size() << " mesh entities" << std::endl;
-
-	std::cout << "Created Player and Enemy entities with meshes from models: "
-		<< playerModelName << " and " << enemyModelName << std::endl;
 }
 
 // This function will be called by the main loop to update the main loop
@@ -188,8 +147,7 @@ void MainLoopBehavior(entt::registry& registry)
 		}
 		deltaTime = elapsed;
 
-		// Update Game using GameManager
-                GAME::UpdateGameManager(registry, deltaTime);
+		// TODO : Update Game
 
 		closedCount = 0;
 		// find all Windows that are not closed and call "patch" to update them

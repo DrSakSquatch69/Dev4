@@ -39,7 +39,7 @@ public:
 		unsigned vertexStart, indexStart, materialStart, meshStart, batchStart;
 		unsigned colliderIndex; // *NEW* location of OBB in levelColliders
 		bool isCollidable;
-		bool isDynamic;
+
 	};
 	struct MODEL_INSTANCES // each instance of a model in the level
 	{
@@ -128,7 +128,6 @@ private:
 		// *NEW* object aligned bounding box data: // LBN, LTN, LTF, LBF, RBN, RTN, RTF, RBF
 		GW::MATH2D::GVECTOR3F boundary[8];
 		bool isCollidable = false;
-		bool isDynamic = false; 
 		mutable std::vector<std::string> blenderNames; // *NEW* names from blender
 		mutable std::vector<GW::MATH::GMATRIXF> instances; // where to draw
 		bool operator<(const MODEL_ENTRY& cmp) const {
@@ -151,9 +150,9 @@ private:
 		}
 	};
 	// internal helper for reading the game level
-	bool ReadGameLevel(const char* gameLevelPath,
-		std::set<MODEL_ENTRY>& outModels,
-		GW::SYSTEM::GLog log) {
+	bool ReadGameLevel(const char* gameLevelPath, 
+						std::set<MODEL_ENTRY> &outModels,
+						GW::SYSTEM::GLog log) {
 		log.LogCategorized("MESSAGE", "Begin Reading Game Level Text File.");
 		GW::SYSTEM::GFile file;
 		file.Create();
@@ -165,7 +164,7 @@ private:
 
 		unsigned int fileSize = 0;
 		file.GetFileSize(gameLevelPath, fileSize); // need fileSize to make sure I don't blow the solution up while still getting all the info I need. TODO: Find a way to optimize this.
-		char* jsonFile = new char[fileSize + 1] {0};
+		char* jsonFile = new char[fileSize+1]{0};
 		file.Read(jsonFile, fileSize); // Unsure if I have to close this.
 
 		nlohmann::json GameLevelData = nlohmann::json::parse(jsonFile);
@@ -178,15 +177,8 @@ private:
 			EntityData = it.value();
 			blenderName = EntityData["name"];
 			MODEL_ENTRY add = { blenderName };
-
-			// Map blender object names to correct model files
-			std::string modelName = blenderName;
-			if (blenderName.find("Wall") != std::string::npos) {
-				modelName = "Wall"; // All wall objects use the Wall model
-			}
-			// Keep other names as is (Ground, Turtle, Cactus, Bullet)
-
-			add.modelFile = modelName + ".h2b";
+			add.modelFile = add.modelFile.substr(0, add.modelFile.find_last_of("."));
+			add.modelFile += ".h2b";
 			log.LogCategorized("MESSAGE", ("Name is: %s", add.modelFile.c_str()));
 
 			GW::MATH::GMATRIXF transform;
@@ -202,7 +194,7 @@ private:
 					add.boundary[i].y = EntityData["bounds"][i][1];
 					add.boundary[i].z = EntityData["bounds"][i][2];
 				}
-
+			
 
 				std::string bounds = "Boundary: Left ";
 				bounds += std::to_string(add.boundary[0].x) +
@@ -218,12 +210,6 @@ private:
 				if (EntityData.find("staticCollidable") != EntityData.end())
 				{
 					add.isCollidable = EntityData["staticCollidable"];
-				}
-
-				// Check for gameType to determine if model is dynamic
-				if (EntityData.find("gameType") != EntityData.end() && EntityData["gameType"] != nullptr)
-				{
-					add.isDynamic = true; // If gameType exists and is not none, it's a dynamic object
 				}
 
 				// does this model already exist?
@@ -244,7 +230,6 @@ private:
 		log.LogCategorized("MESSAGE", "Game Level File Reading Complete.");
 		return true;
 	}
-	
 	// internal helper for collecting all .h2b data into unified arrays
 	bool ReadAndCombineH2Bs(const char* h2bFolderPath, 
 							const std::set<MODEL_ENTRY>& modelSet,
@@ -285,7 +270,6 @@ private:
 				model.batchStart = levelBatches.size();
 				model.meshStart = levelMeshes.size();
 				model.isCollidable = i->isCollidable;
-				model.isDynamic = i->isDynamic;
 				// append/move all data
 				levelVertices.insert(levelVertices.end(), p.vertices.begin(), p.vertices.end());
 				levelIndices.insert(levelIndices.end(), p.indices.begin(), p.indices.end());

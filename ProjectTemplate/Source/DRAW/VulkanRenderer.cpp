@@ -1,6 +1,5 @@
 #include "DrawComponents.h"
 #include "../CCL.h"
-#include "../GAME/GameComponents.h" // Add this include for DoNotRender tag
 // component dependencies
 #include "./Utility/FileIntoString.h"
 
@@ -680,32 +679,12 @@ namespace DRAW
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanRenderer.pipelineLayout, 0, 1, &vulkanRenderer.descriptorSets[frame], 0, nullptr);
 
 			// Create a group for all entities with GeometryData and GPUInstance
-			auto renderGroup = registry.view<GeometryData, GPUInstance>(entt::exclude<GAME::DoNotRender>);
-                
-                // Debug: Count entities in the render group
-                size_t renderGroupSize = 0;
-                for (auto entity : renderGroup) {
-                        renderGroupSize++;
-                }
-               // std::cout << "Render group size: " << renderGroupSize << " entities" << std::endl;
-                
-                // Debug: Count all entities with GeometryData and GPUInstance (including those with DoNotRender)
-                auto allEntitiesView = registry.view<GeometryData, GPUInstance>();
-                size_t allEntitiesCount = 0;
-                for (auto entity : allEntitiesView) {
-                        allEntitiesCount++;
-                }
-               // std::cout << "All entities with GeometryData and GPUInstance: " << allEntitiesCount << std::endl;
-                
-                // Debug: Count entities with DoNotRender tag
-                auto doNotRenderView = registry.view<GAME::DoNotRender>();
-                size_t doNotRenderCount = 0;
-                for (auto entity : doNotRenderView) {
-                        doNotRenderCount++;
-                }
-                //std::cout << "Entities with DoNotRender tag: " << doNotRenderCount << std::endl;
-			
-			
+			auto renderGroup = registry.group<GeometryData, GPUInstance>();
+
+			// Sort the group by GeometryData (by indexStart)
+			renderGroup.sort<GeometryData>([](const GeometryData& a, const GeometryData& b) {
+				return a < b;
+				});
 
 			// *** START OF STEP 3C IMPLEMENTATION ***
 			// STEP 3C: Create containers for instance data

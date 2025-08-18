@@ -7,7 +7,6 @@
 namespace DRAW
 {
 	//*** TAGS ***//
-	struct LevelInstance {}; // Tag for entities that are instances of level objects
 
 	//*** COMPONENTS ***//
 	struct VulkanRendererInitialization
@@ -83,6 +82,7 @@ namespace DRAW
 		std::vector<VkDeviceMemory> memory;
 	};
 
+
 	struct Camera
 	{
 		GW::MATH::GMATRIXF camMatrix;
@@ -125,6 +125,8 @@ namespace DRAW
 		float roughnessFactor;
 	};
 	
+	struct LevelInstance {}; // Tag for entities that are instances of level objects
+
 	// Also add a Parent component to establish relationships
 	struct Parent
 	{
