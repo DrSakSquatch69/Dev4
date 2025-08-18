@@ -178,8 +178,15 @@ private:
 			EntityData = it.value();
 			blenderName = EntityData["name"];
 			MODEL_ENTRY add = { blenderName };
-			add.modelFile = add.modelFile.substr(0, add.modelFile.find_last_of("."));
-			add.modelFile += ".h2b";
+
+			// Map blender object names to correct model files
+			std::string modelName = blenderName;
+			if (blenderName.find("Wall") != std::string::npos) {
+				modelName = "Wall"; // All wall objects use the Wall model
+			}
+			// Keep other names as is (Ground, Turtle, Cactus, Bullet)
+
+			add.modelFile = modelName + ".h2b";
 			log.LogCategorized("MESSAGE", ("Name is: %s", add.modelFile.c_str()));
 
 			GW::MATH::GMATRIXF transform;
