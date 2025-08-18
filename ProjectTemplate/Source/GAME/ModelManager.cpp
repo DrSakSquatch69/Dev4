@@ -83,9 +83,10 @@ namespace GAME {
                     auto& gpuInstance = registry.get<DRAW::GPUInstance>(modelEntity);
                     registry.emplace<DRAW::GPUInstance>(meshEntity, gpuInstance);
 
-                    // If this is the first mesh, use its transform for the game entity
                     if (modelEntities[0] == modelEntity) {
-                        transform.matrix = gpuInstance.transform;
+                        // Copy only the position from the original transform, not the rotation
+                        transform.matrix = GW::MATH::GIdentityMatrixF;
+                        transform.matrix.row4 = gpuInstance.transform.row4; // Copy only position
                     }
                 }
 

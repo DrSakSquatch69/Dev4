@@ -91,6 +91,8 @@ namespace GAME {
                 if (registry.all_of<DRAW::GPUInstance>(meshEntity)) {
                     auto& gpuInstance = registry.get<DRAW::GPUInstance>(meshEntity);
                     gpuInstance.transform = transform.matrix;
+
+
                 }
             }
         }

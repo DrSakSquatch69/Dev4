@@ -2,16 +2,16 @@
 
 struct OBJ_ATTRIBUTES
 {
-	float3      Kd; // diffuse reflectivity
-	float	    d; // dissolve (transparency) 
-	float3      Ks; // specular reflectivity
-	float       Ns; // specular exponent
-	float3      Ka; // ambient reflectivity
-	float       sharpness; // local reflection map sharpness
-	float3      Tf; // transmission filter
-	float       Ni; // optical density (index of refraction)
-	float3      Ke; // emissive reflectivity
-	float		illum; // illumination model
+    float3 Kd; // diffuse reflectivity
+    float d; // dissolve (transparency) 
+    float3 Ks; // specular reflectivity
+    float Ns; // specular exponent
+    float3 Ka; // ambient reflectivity
+    float sharpness; // local reflection map sharpness
+    float3 Tf; // transmission filter
+    float Ni; // optical density (index of refraction)
+    float3 Ke; // emissive reflectivity
+    float illum; // illumination model
 };
 
 struct SHADER_MODEL_DATA
@@ -24,8 +24,8 @@ StructuredBuffer<SHADER_MODEL_DATA> SceneData : register(b1);
 
 cbuffer SHADER_SCENE_DATA : register(b0)
 {
-	float4 sunDirection, sunColor, sunAmbient, camPos;
-	float4x4 viewMatrix, projectionMatrix;
+    float4 sunDirection, sunColor, sunAmbient, camPos;
+    float4x4 viewMatrix, projectionMatrix;
 };
 
 
@@ -43,12 +43,22 @@ struct V_OUT
 V_OUT main(float3 pos : POSITION, float3 uvw : TEXCOORD,
             float3 nrm : NORMAL, uint index : SV_InstanceID)// : SV_POSITION
 {
-    float4 posW = mul(float4(pos, 1), SceneData[index].worldMatrix);
+    // Get the world matrix from the scene data
+    float4x4 worldMatrix = SceneData[index].worldMatrix;
+    
+    // Apply the world matrix to the position
+    float4 posW = mul(float4(pos, 1), worldMatrix);
+    
+    // Apply view and projection matrices
     float4 posH = mul(posW, viewMatrix);
     posH = mul(posH, projectionMatrix);
+    
+    // Transform normal by world matrix
+    float3 worldNormal = mul(nrm, (float3x3) worldMatrix);
+    
     V_OUT output =
     {
-        posH, mul(nrm, SceneData[index].worldMatrix).xyz, posW.xyz, uvw, index
+        posH, worldNormal, posW.xyz, uvw, index
     };
     return output;
 }
