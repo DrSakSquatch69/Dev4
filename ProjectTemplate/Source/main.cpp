@@ -107,9 +107,9 @@ void GraphicsBehavior(entt::registry& registry)
 
 	// Create a camera and emplace it
 	GW::MATH::GMATRIXF initialCamera;
-	GW::MATH::GVECTORF translate = { 0.0f,  45.0f, -5.0f };
-	GW::MATH::GVECTORF lookat = { 0.0f, 0.0f, 0.0f };
-	GW::MATH::GVECTORF up = { 0.0f, 1.0f, 0.0f };
+	GW::MATH::GVECTORF translate = { 0.0f, 0.0f, -45.0f }; // Position back from the scene
+	GW::MATH::GVECTORF lookat = { 0.0f, 0.0f, 0.0f }; // Looking at the center
+	GW::MATH::GVECTORF up = { 0.0f, 1.0f, 0.0f }; // Up vector pointing up in world space
 	GW::MATH::GMatrix::TranslateGlobalF(initialCamera, translate, initialCamera);
 	GW::MATH::GMatrix::LookAtLHF(translate, lookat, up, initialCamera);
 	// Inverse to turn it into a camera matrix, not a view matrix. This will let us do
