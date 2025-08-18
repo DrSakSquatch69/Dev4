@@ -680,7 +680,7 @@ namespace DRAW
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanRenderer.pipelineLayout, 0, 1, &vulkanRenderer.descriptorSets[frame], 0, nullptr);
 
 			// Create a group for all entities with GeometryData and GPUInstance
-			auto renderGroup = registry.view<GeometryData, GPUInstance>();
+			auto renderGroup = registry.view<GeometryData, GPUInstance>(entt::exclude<GAME::DoNotRender>);
                 
                 // Debug: Count entities in the render group
                 size_t renderGroupSize = 0;

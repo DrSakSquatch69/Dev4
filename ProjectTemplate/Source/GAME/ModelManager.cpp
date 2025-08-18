@@ -84,9 +84,7 @@ namespace GAME {
                     registry.emplace<DRAW::GPUInstance>(meshEntity, gpuInstance);
 
                     if (modelEntities[0] == modelEntity) {
-                        // Copy only the position from the original transform, not the rotation
-                        transform.matrix = GW::MATH::GIdentityMatrixF;
-                        transform.matrix.row4 = gpuInstance.transform.row4; // Copy only position
+                        transform.matrix = gpuInstance.transform; // Copy the entire transform
                     }
                 }
 
