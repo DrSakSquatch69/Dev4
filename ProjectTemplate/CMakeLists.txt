@@ -85,3 +85,4 @@ set_source_files_properties( ${SHADER_FILES} PROPERTIES
     VS_SHADER_ENTRYPOINT main
     VS_TOOL_OVERRIDE "None" # stop VS from compiling, we will do it
 )
+
