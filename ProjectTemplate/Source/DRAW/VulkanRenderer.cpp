@@ -679,7 +679,7 @@ namespace DRAW
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanRenderer.pipelineLayout, 0, 1, &vulkanRenderer.descriptorSets[frame], 0, nullptr);
 
 			// Create a group for all entities with GeometryData and GPUInstance
-			auto renderGroup = registry.group<GeometryData, GPUInstance>(entt::exclude<DoNotRender>);
+			auto renderGroup = registry.group<GeometryData, GPUInstance, entt::exclude_t<DRAW::DoNotRender>>();
 
 			// Sort the group by GeometryData (by indexStart)
 			renderGroup.sort<GeometryData>([](const GeometryData& a, const GeometryData& b) {
