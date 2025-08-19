@@ -533,7 +533,7 @@ namespace DRAW
 
 		// Create a view of all entities with GeometryData and GPUInstance components
 		// that are associated with this level
-		auto levelInstancesView = registry.view<GeometryData, GPUInstance>();
+		auto levelInstancesView = registry.view<GeometryData, GPUInstance>(entt::exclude<DoNotRender>);
 
 		// Sort instances by material to minimize state changes
 		std::vector<entt::entity> sortedInstances;
@@ -679,7 +679,7 @@ namespace DRAW
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanRenderer.pipelineLayout, 0, 1, &vulkanRenderer.descriptorSets[frame], 0, nullptr);
 
 			// Create a group for all entities with GeometryData and GPUInstance
-			auto renderGroup = registry.group<GeometryData, GPUInstance>();
+			auto renderGroup = registry.group<GeometryData, GPUInstance>(entt::exclude<DoNotRender>);
 
 			// Sort the group by GeometryData (by indexStart)
 			renderGroup.sort<GeometryData>([](const GeometryData& a, const GeometryData& b) {

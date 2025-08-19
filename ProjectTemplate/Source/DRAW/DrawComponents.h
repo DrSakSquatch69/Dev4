@@ -7,6 +7,8 @@
 namespace DRAW
 {
 	//*** TAGS ***//
+	struct DoNotRender {}; // Tag to exclude entities from rendering
+
 
 	//*** COMPONENTS ***//
 	struct VulkanRendererInitialization

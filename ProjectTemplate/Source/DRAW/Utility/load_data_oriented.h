@@ -39,7 +39,7 @@ public:
 		unsigned vertexStart, indexStart, materialStart, meshStart, batchStart;
 		unsigned colliderIndex; // *NEW* location of OBB in levelColliders
 		bool isCollidable;
-
+		bool isDynamic;
 	};
 	struct MODEL_INSTANCES // each instance of a model in the level
 	{
@@ -128,6 +128,7 @@ private:
 		// *NEW* object aligned bounding box data: // LBN, LTN, LTF, LBF, RBN, RTN, RTF, RBF
 		GW::MATH2D::GVECTOR3F boundary[8];
 		bool isCollidable = false;
+		bool isDynamic = false; // *NEW* if this model is dynamic (ex: moving, animated, etc)
 		mutable std::vector<std::string> blenderNames; // *NEW* names from blender
 		mutable std::vector<GW::MATH::GMATRIXF> instances; // where to draw
 		bool operator<(const MODEL_ENTRY& cmp) const {
@@ -212,6 +213,16 @@ private:
 					add.isCollidable = EntityData["staticCollidable"];
 				}
 
+				if (EntityData.find("gameType") != EntityData.end())
+				{
+					// If gameType exists and is not "none", mark as dynamic
+					std::string gameType = EntityData["gameType"];
+					if (gameType != "none")
+					{
+						add.isDynamic = true;
+						log.LogCategorized("INFO", (std::string("Dynamic model found: ") + blenderName + " (Type: " + gameType + ")").c_str());
+					}
+				}
 				// does this model already exist?
 				auto found = outModels.find(add); // IMPORTANT, LOOK FOR THIS AFTER YOU'RE DONE WITH THE TRANSFORM.
 				if (found == outModels.end()) // no
@@ -270,6 +281,7 @@ private:
 				model.batchStart = levelBatches.size();
 				model.meshStart = levelMeshes.size();
 				model.isCollidable = i->isCollidable;
+				model.isDynamic = i->isDynamic; 
 				// append/move all data
 				levelVertices.insert(levelVertices.end(), p.vertices.begin(), p.vertices.end());
 				levelIndices.insert(levelIndices.end(), p.indices.begin(), p.indices.end());
