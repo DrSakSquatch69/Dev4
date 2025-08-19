@@ -1,7 +1,6 @@
 #ifndef GAME_MANAGER_H
 #define GAME_MANAGER_H
 
-#include <entt/entt.hpp>
 #include "../DRAW/DrawComponents.h"
 #include "../UTIL/Utilities.h"
 

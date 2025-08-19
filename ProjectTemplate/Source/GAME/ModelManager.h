@@ -1,11 +1,10 @@
 #ifndef MODEL_MANAGER_H
 #define MODEL_MANAGER_H
 
-#include <entt/entt.hpp>
+#include "../DRAW/DrawComponents.h"
 #include <string>
 #include <map>
 #include <vector>
-#include "../DRAW/DrawComponents.h"
 
 namespace GAME {
     // Forward declarations

@@ -13,6 +13,7 @@
 void GraphicsBehavior(entt::registry& registry);
 void GameplayBehavior(entt::registry& registry);
 void MainLoopBehavior(entt::registry& registry);
+void CreatePlayer(entt::registry& registry);
 
 // Architecture is based on components/entities pushing updates to other components/entities (via "patch" function)
 int main()
@@ -36,6 +37,7 @@ int main()
 	
 	MainLoopBehavior(registry); // update windows and input
 
+	CreatePlayer(registry);
 	// clear all entities and components from the registry
 	// invokes on_destroy() for all components that have it
 	// registry will still be intact while this is happening

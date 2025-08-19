@@ -29,6 +29,20 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
                 // Create a new entity for this mesh instance
                 entt::entity meshEntity = registry.create();
 
+                // Add the entity to the appropriate collection based on the model name
+                std::string modelName = model.filename;
+                std::string collectionName = modelName;
+                size_t lastSlash = collectionName.find_last_of("/\&quot;);
+                    if (lastSlash != std::string::npos)
+                        collectionName = collectionName.substr(lastSlash + 1);
+
+                size_t lastDot = collectionName.find_last_of(".");
+                if (lastDot != std::string::npos)
+                    collectionName = collectionName.substr(0, lastDot);
+
+                std::cout << "Adding entity to collection: " << collectionName << std::endl;
+                GAME::AddEntityToCollection(registry, meshEntity, collectionName);
+
                 // Fill out GeometryData
                 GeometryData geom;
                 geom.indexStart = model.indexStart + mesh.drawInfo.indexOffset;
