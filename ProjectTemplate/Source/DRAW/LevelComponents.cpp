@@ -58,6 +58,10 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
                     registry.emplace<DoNotRender>(meshEntity);
                     std::cout << "Added DoNotRender tag to dynamic model mesh" << model.filename << std::endl;
                 }
+                else
+                {
+                    std::cout << "Static model (should render): " << model.filename << std::endl;
+                }
             }
         }
 }

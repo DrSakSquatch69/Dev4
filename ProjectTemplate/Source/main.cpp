@@ -6,7 +6,7 @@
 #include "DRAW/DrawComponents.h"
 #include "GAME/GameComponents.h"
 #include "APP/Window.hpp"
-
+#include "GAME/GameManager.h"
 
 
 // Local routines for specific application behavior
@@ -44,6 +44,22 @@ int main()
 	return 0; // now destructors will be called for all components
 }
 
+void CreatePlayer(entt::registry& registry)
+{
+	// Create a player entity from the Turtle model
+	entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, "Turtle");
+
+	// Add the Player tag to the entity
+	registry.emplace<GAME::Player>(playerEntity);
+
+	// Position the player at a suitable starting position
+	auto& transform = registry.get<GAME::Transform>(playerEntity);
+	GW::MATH::GVECTORF startPosition = { 0.0f, 0.0f, 0.0f };
+	GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, startPosition, transform.matrix);
+
+	std::cout << "Player entity created" << std::endl;
+}
+
 // This function will be called by the main loop to update the graphics
 // It will be responsible for loading the Level, creating the VulkanRenderer, and all VulkanInstances
 void GraphicsBehavior(entt::registry& registry)
@@ -58,6 +74,8 @@ void GraphicsBehavior(entt::registry& registry)
 
 	// TODO: Emplace CPULevel. Placing here to reduce occurrence of a json race condition crash
 	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{LevelFile, ModelPath});
+
+	CreatePlayer(registry);
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
@@ -123,6 +141,15 @@ void GraphicsBehavior(entt::registry& registry)
 void GameplayBehavior(entt::registry& registry)
 {
 	std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
+
+	// Calculate delta time
+	static auto lastTime = std::chrono::high_resolution_clock::now();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+	lastTime = currentTime;
+
+	// Update the GameManager
+	GAME::UpdateGameManager(registry, deltaTime);
 }
 
 // This function will be called by the main loop to update the main loop
