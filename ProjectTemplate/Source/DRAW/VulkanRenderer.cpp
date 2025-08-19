@@ -533,7 +533,7 @@ namespace DRAW
 
 		// Create a view of all entities with GeometryData and GPUInstance components
 		// that are associated with this level
-		auto levelInstancesView = registry.view<GeometryData, GPUInstance>(entt::exclude<DoNotRender>);
+		auto levelInstancesView = registry.view<GeometryData, GPUInstance>();
 
 		// Sort instances by material to minimize state changes
 		std::vector<entt::entity> sortedInstances;

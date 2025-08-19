@@ -86,3 +86,10 @@ set_source_files_properties( ${SHADER_FILES} PROPERTIES
     VS_TOOL_OVERRIDE "None" # stop VS from compiling, we will do it
 )
 
+add_custom_target(auto-commit ALL
+    COMMAND git add .
+    COMMAND git commit -m "Auto-commit from build"
+    COMMAND git push
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Auto-committing changes"
+)
