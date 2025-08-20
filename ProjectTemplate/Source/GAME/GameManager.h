@@ -7,21 +7,6 @@
 
 namespace GAME
 {
-    // Tags for game entities
-    struct Player {};
-    struct Enemy {};
-    struct Bullet {};
-
-    // Transform component for game entities
-    struct Transform {
-        GW::MATH::GMATRIXF matrix;
-    };
-
-    // Collection of mesh entities that make up a game entity
-    struct MeshCollection {
-        std::vector<entt::entity> meshEntities;
-    };
-
     // GameManager component to store game state
     struct GameManager {
         float playerSpeed = 5.0f; // Units per second
