@@ -4,6 +4,7 @@
 #include "../DRAW/DrawComponents.h"
 #include "../UTIL/Utilities.h"
 #include "ModelManager.h"
+#include "GameComponents.h"
 
 namespace GAME
 {

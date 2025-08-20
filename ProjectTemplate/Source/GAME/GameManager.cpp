@@ -93,6 +93,61 @@ namespace GAME {
     // Map to store collections of entities by name
     std::map<std::string, std::vector<entt::entity>> modelCollections;
 
+    void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName) {
+        modelCollections[collectionName].push_back(entity);
+    }
+
+    std::vector<entt::entity> GetEntitiesFromCollection(entt::registry& registry, const std::string& collectionName) {
+        if (modelCollections.find(collectionName) != modelCollections.end()) {
+            return modelCollections[collectionName];
+        }
+        return std::vector<entt::entity>();
+    }
+
+    entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::string& modelName) {
+        // Create the entity
+        entt::entity gameEntity = registry.create();
+
+        // Add a MeshCollection component
+        registry.emplace<MeshCollection>(gameEntity);
+
+        // Add a Transform component with identity matrix initially
+        auto& transform = registry.emplace<Transform>(gameEntity);
+        GW::MATH::GMatrix::IdentityF(transform.matrix);
+
+        // Get entities from the model collection
+        auto modelEntities = GetEntitiesFromCollection(registry, modelName);
+        std::cout << "Model collection " << modelName << " has " << modelEntities.size() << " entities" << std::endl;
+
+        // For each entity in the model collection
+        for (auto modelEntity : modelEntities) {
+            // Create a new entity for the mesh
+            entt::entity meshEntity = registry.create();
+
+            // Copy the GeometryData and GPUInstance components
+            if (registry.all_of<DRAW::GeometryData>(modelEntity)) {
+                auto& geomData = registry.get<DRAW::GeometryData>(modelEntity);
+                registry.emplace<DRAW::GeometryData>(meshEntity, geomData);
+            }
+
+            if (registry.all_of<DRAW::GPUInstance>(modelEntity)) {
+                auto& gpuInstance = registry.get<DRAW::GPUInstance>(modelEntity);
+                registry.emplace<DRAW::GPUInstance>(meshEntity, gpuInstance);
+
+                if (modelEntities[0] == modelEntity) {
+                    transform.matrix = gpuInstance.transform; // Copy the entire transform
+                }
+            }
+
+            // Add the mesh entity to the game entity's MeshCollection
+            auto& meshCollection = registry.get<MeshCollection>(gameEntity);
+            meshCollection.meshEntities.push_back(meshEntity);
+        }
+
+        return gameEntity;
+    }
+
+
     // Connect the GameManager logic to the registry
     CONNECT_COMPONENT_LOGIC() {
         // Initialize the GameManager
