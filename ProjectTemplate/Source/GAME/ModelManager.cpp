@@ -47,11 +47,14 @@ namespace GAME {
 
         // Debug: Check if the model collection exists
         std::cout << "Looking for model collection: " << modelName << std::endl;
-        if (modelManager.collections.find(modelName) != modelManager.collections.end()) {
+
+        // IMPORTANT: Check if the collection exists before trying to access it
+        if (modelManager.collections.find(modelName) != modelManager.collections.end() &&
+            !modelManager.collections[modelName].empty()) {
             std::cout << "Found model collection: " << modelName << std::endl;
 
             // Get the entities from the collection
-            auto modelEntities = GetEntitiesFromCollection(registry, modelName);
+            auto modelEntities = modelManager.collections[modelName];
             std::cout << "Model collection " << modelName << " has " << modelEntities.size() << " entities" << std::endl;
 
             // For each entity in the model collection
@@ -80,7 +83,8 @@ namespace GAME {
             }
         }
         else {
-            std::cout << "Model collection not found: " << modelName << std::endl;
+            std::cout << "Model collection not found or empty: " << modelName << std::endl;
+            // Create a default transform or handle the missing model case
         }
 
         return gameEntity;

@@ -24,6 +24,8 @@ int main()
 
 	// initialize the ECS Component Logic
 	CCL::InitializeComponentLogic(registry);
+	GAME::InitializeModelManager(registry);
+
 
 	// Seed the rand
 	unsigned int time = std::chrono::steady_clock::now().time_since_epoch().count();
@@ -51,15 +53,22 @@ void CreatePlayer(entt::registry& registry)
 	// Create a player entity from the Turtle model
 	entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, "Turtle");
 
-	// Add the Player tag to the entity
-	registry.emplace<GAME::Player>(playerEntity);
+	// Check if the entity has a MeshCollection component
+	if (registry.all_of<GAME::MeshCollection>(playerEntity) &&
+		!registry.get<GAME::MeshCollection>(playerEntity).meshEntities.empty()) {
+		// Add the Player tag to the entity
+		registry.emplace<GAME::Player>(playerEntity);
 
-	// Position the player at a suitable starting position
-	auto& transform = registry.get<GAME::Transform>(playerEntity);
-	GW::MATH::GVECTORF startPosition = { 0.0f, 0.0f, 0.0f };
-	GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, startPosition, transform.matrix);
+		// Position the player at a suitable starting position
+		auto& transform = registry.get<GAME::Transform>(playerEntity);
+		GW::MATH::GVECTORF startPosition = { 0.0f, 0.0f, 0.0f };
+		GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, startPosition, transform.matrix);
 
-	std::cout << "Player entity created" << std::endl;
+		std::cout << "Player entity created successfully" << std::endl;
+	}
+	else {
+		std::cout << "Failed to create player entity - model collection not found or empty" << std::endl;
+	}
 }
 
 // This function will be called by the main loop to update the graphics
