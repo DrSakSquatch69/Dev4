@@ -14,6 +14,9 @@ namespace GAME {
         // Get the GameManager from the registry context
         auto& gameManager = registry.ctx().get<GameManager>();
 
+        // Handle keyboard input for toggling visibility
+        HandleVisibilityToggleInput(registry);
+
         // Update player movement based on input
         UpdatePlayerMovement(registry, deltaTime);
 
@@ -147,11 +150,115 @@ namespace GAME {
         return gameEntity;
     }
 
+    // Toggle visibility of an entity
+    void ToggleEntityVisibility(entt::registry& registry, entt::entity entity) {
+        // Get the mesh collection for this entity
+        if (!registry.all_of<MeshCollection>(entity)) {
+            return;
+        }
+
+        auto& meshCollection = registry.get<MeshCollection>(entity);
+
+        // Toggle DoNotRender tag for each mesh entity
+        for (auto meshEntity : meshCollection.meshEntities) {
+            if (registry.all_of<DRAW::DoNotRender>(meshEntity)) {
+                registry.remove<DRAW::DoNotRender>(meshEntity);
+            }
+            else {
+                registry.emplace<DRAW::DoNotRender>(meshEntity);
+            }
+        }
+    }
+
+    // Set visibility of an entity
+    void SetEntityVisibility(entt::registry& registry, entt::entity entity, bool visible) {
+        // Get the mesh collection for this entity
+        if (!registry.all_of<MeshCollection>(entity)) {
+            return;
+        }
+
+        auto& meshCollection = registry.get<MeshCollection>(entity);
+
+        // Set DoNotRender tag for each mesh entity based on visibility
+        for (auto meshEntity : meshCollection.meshEntities) {
+            if (visible) {
+                if (registry.all_of<DRAW::DoNotRender>(meshEntity)) {
+                    registry.remove<DRAW::DoNotRender>(meshEntity);
+                }
+            }
+            else {
+                if (!registry.all_of<DRAW::DoNotRender>(meshEntity)) {
+                    registry.emplace<DRAW::DoNotRender>(meshEntity);
+                }
+            }
+        }
+    }
+
+    // Handle keyboard input for toggling visibility
+    void HandleVisibilityToggleInput(entt::registry& registry) {
+        // Get the input from the registry context
+        auto& input = registry.ctx().get<UTIL::Input>();
+        auto& gameManager = registry.ctx().get<GameManager>();
+
+        // Check for P key press to toggle player visibility
+        float pKey = 0.0f;
+        static bool pKeyPressed = false;
+        input.immediateInput.GetState(G_KEY_P, pKey);
+
+        if (pKey > 0.0f && !pKeyPressed) {
+            pKeyPressed = true;
+            gameManager.playerVisible = !gameManager.playerVisible;
+
+            // Find the player entity
+            auto playerView = registry.view<Player>();
+            if (playerView.begin() != playerView.end()) {
+                auto playerEntity = *playerView.begin();
+                SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
+                std::cout << "Player visibility toggled: " << (gameManager.playerVisible ? "visible" : "hidden") << std::endl;
+            }
+        }
+        else if (pKey <= 0.0f) {
+            pKeyPressed = false;
+        }
+
+        // Check for E key press to toggle enemy visibility
+        float eKey = 0.0f;
+        static bool eKeyPressed = false;
+        input.immediateInput.GetState(G_KEY_E, eKey);
+
+        if (eKey > 0.0f && !eKeyPressed) {
+            eKeyPressed = true;
+            gameManager.enemyVisible = !gameManager.enemyVisible;
+
+            // Find the enemy entity
+            auto enemyView = registry.view<Enemy>();
+            if (enemyView.begin() != enemyView.end()) {
+                auto enemyEntity = *enemyView.begin();
+                SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
+                std::cout << "Enemy visibility toggled: " << (gameManager.enemyVisible ? "visible" : "hidden") << std::endl;
+            }
+        }
+        else if (eKey <= 0.0f) {
+            eKeyPressed = false;
+        }
+    }
+
+    // on_update method for the GameManager component
+    void on_update(entt::registry& registry, entt::entity entity) {
+        // Get the delta time from the registry context
+        auto& deltaTime = registry.ctx().get<UTIL::DeltaTime>().dtSec;
+
+        // Update the GameManager
+        UpdateGameManager(registry, static_cast<float>(deltaTime));
+    }
 
     // Connect the GameManager logic to the registry
     CONNECT_COMPONENT_LOGIC() {
         // Initialize the GameManager
         InitializeGameManager(registry);
+
+        // Connect the on_update method
+        registry.on_update<GameManager>().connect<&on_update>();
     }
 
 } // namespace GAME

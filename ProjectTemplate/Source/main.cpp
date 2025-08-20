@@ -7,8 +7,8 @@
 #include "GAME/GameComponents.h"
 #include "APP/Window.hpp"
 #include "GAME/GameManager.h"
-#include "UTIL/Utilities.h"
 #include "UTIL/GameConfig.h"
+
 
 // Local routines for specific application behavior
 void GraphicsBehavior(entt::registry& registry);
@@ -147,6 +147,7 @@ void GraphicsBehavior(entt::registry& registry)
 	registry.emplace<DRAW::Camera>(display,
 		DRAW::Camera{ initialCamera });
 }
+
 entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::string& modelName)
 {
 	// Create the entity
@@ -218,6 +219,15 @@ void GameplayBehavior(entt::registry& registry)
 	float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
 	lastTime = currentTime;
 
+	// Create GameManager entity if it doesn't exist
+	static entt::entity gameManagerEntity = entt::null;
+	if (gameManagerEntity == entt::null || !registry.valid(gameManagerEntity))
+	{
+		gameManagerEntity = registry.create();
+		registry.emplace<GAME::GameManager>(gameManagerEntity);
+		std::cout << "GameManager entity created" << std::endl;
+	}
+
 	// Check if player and enemy entities exist
 	static bool entitiesCreated = false;
 	if (!entitiesCreated)
@@ -225,22 +235,43 @@ void GameplayBehavior(entt::registry& registry)
 		// Get the config file
 		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
 
-		// Get model names from config
-		std::string playerModelName = config->at("Models").at("player").as<std::string>();
-		std::string enemyModelName = config->at("Models").at("enemy").as<std::string>();
+		// Get model names from config with error checking
+		std::string playerModelName = "Turtle"; // Default value
+		std::string enemyModelName = "Cactus";  // Default value
+
+		try {
+			playerModelName = config->at("Player").at("model").as<std::string>();
+		}
+		catch (const std::exception& e) {
+			std::cout << "Player model not found in config, using default: " << e.what() << std::endl;
+			// Keep the default value
+		}
+
+		try {
+			enemyModelName = config->at("Enemy1").at("model").as<std::string>();
+		}
+		catch (const std::exception& e) {
+			std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
+			// Keep the default value
+		}
 
 		std::cout << "Player model name: " << playerModelName << std::endl;
 		std::cout << "Enemy model name: " << enemyModelName << std::endl;
 
 		// Create player entity
-		entt::entity playerEntity = CreateGameEntityFromModel(registry, playerModelName);
+		entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
 		registry.emplace<GAME::Player>(playerEntity);
 		std::cout << "Player entity created" << std::endl;
 
 		// Create enemy entity
-		entt::entity enemyEntity = CreateGameEntityFromModel(registry, enemyModelName);
+		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 		registry.emplace<GAME::Enemy>(enemyEntity);
 		std::cout << "Enemy entity created" << std::endl;
+
+		// Set initial visibility
+		auto& gameManager = registry.ctx().get<GAME::GameManager>();
+		GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
+		GAME::SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
 
 		entitiesCreated = true;
 	}
@@ -272,6 +303,10 @@ void MainLoopBehavior(entt::registry& registry)
 		deltaTime = elapsed;
 
 		// TODO : Update Game
+		auto gameManagerView = registry.view<GAME::GameManager>();
+		for (auto entity : gameManagerView) {
+			registry.patch<GAME::GameManager>(entity); // Update the GameManager
+		}
 
 		closedCount = 0;
 		// find all Windows that are not closed and call "patch" to update them

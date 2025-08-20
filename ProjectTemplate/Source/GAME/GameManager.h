@@ -11,6 +11,8 @@ namespace GAME
     // GameManager component to store game state
     struct GameManager {
         float playerSpeed = 5.0f; // Units per second
+        bool playerVisible = true; // Flag to control player visibility
+        bool enemyVisible = true;  // Flag to control enemy visibility
     };
 
     // Initialize the GameManager
@@ -18,6 +20,9 @@ namespace GAME
 
     // Update the GameManager
     void UpdateGameManager(entt::registry& registry, float deltaTime);
+
+    // on_update method for the GameManager component
+    void on_update(entt::registry& registry, entt::entity entity);
 
     // Update player movement based on input
     void UpdatePlayerMovement(entt::registry& registry, float deltaTime);
@@ -33,6 +38,15 @@ namespace GAME
 
     // Create a game entity from a model
     entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::string& modelName);
+
+    // Toggle visibility of an entity
+    void ToggleEntityVisibility(entt::registry& registry, entt::entity entity);
+
+    // Set visibility of an entity
+    void SetEntityVisibility(entt::registry& registry, entt::entity entity, bool visible);
+
+    // Handle keyboard input for toggling visibility
+    void HandleVisibilityToggleInput(entt::registry& registry);
 }
 
 #endif // GAME_MANAGER_H
