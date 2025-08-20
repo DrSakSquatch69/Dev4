@@ -3,6 +3,7 @@
 
 #include "../DRAW/DrawComponents.h"
 #include "../UTIL/Utilities.h"
+#include "ModelManager.h"
 
 namespace GAME
 {

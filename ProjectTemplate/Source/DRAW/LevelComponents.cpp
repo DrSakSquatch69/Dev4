@@ -1,6 +1,6 @@
 #include "DrawComponents.h"
 #include "../CCL.h"
-
+#include "../GAME/ModelManager.h"
 namespace DRAW
 {
 // Call this function after Level_Data is loaded and buffers are ready
@@ -32,7 +32,7 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
                 // Add the entity to the appropriate collection based on the model name
                 std::string modelName = model.filename;
                 std::string collectionName = modelName;
-                size_t lastSlash = collectionName.find_last_of("/\&quot;);
+                size_t lastSlash = collectionName.find_last_of("/\\");
                     if (lastSlash != std::string::npos)
                         collectionName = collectionName.substr(lastSlash + 1);
 
