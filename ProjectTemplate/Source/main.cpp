@@ -7,8 +7,8 @@
 #include "GAME/GameComponents.h"
 #include "APP/Window.hpp"
 #include "GAME/GameManager.h"
-#include <ini/INIFile.hpp>
-
+#include "UTIL/Utilities.h"
+#include "UTIL/GameConfig.h"
 
 // Local routines for specific application behavior
 void GraphicsBehavior(entt::registry& registry);
@@ -223,16 +223,11 @@ void GameplayBehavior(entt::registry& registry)
 	if (!entitiesCreated)
 	{
 		// Get the config file
-		auto* config = registry.ctx().find<std::shared_ptr<ini::INIFile>>();
-		if (!config)
-		{
-			std::cout << "Config file not found!" << std::endl;
-			return;
-		}
+		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
 
 		// Get model names from config
-		std::string playerModelName = (*config)->at("Models").at("player").as<std::string>();
-		std::string enemyModelName = (*config)->at("Models").at("enemy").as<std::string>();
+		std::string playerModelName = config->at("Models").at("player").as<std::string>();
+		std::string enemyModelName = config->at("Models").at("enemy").as<std::string>();
 
 		std::cout << "Player model name: " << playerModelName << std::endl;
 		std::cout << "Enemy model name: " << enemyModelName << std::endl;
