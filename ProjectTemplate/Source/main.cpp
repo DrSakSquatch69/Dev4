@@ -8,7 +8,7 @@
 #include "APP/Window.hpp"
 #include "GAME/GameManager.h"
 #include "UTIL/GameConfig.h"
-
+#include "GAME/Player.h"
 
 // Local routines for specific application behavior
 void GraphicsBehavior(entt::registry& registry);

@@ -4,261 +4,262 @@
 
 namespace GAME {
 
-    void InitializeGameManager(entt::registry& registry) {
-        // Create a GameManager in the registry context
-        registry.ctx().emplace<GameManager>();
-        std::cout << "GameManager initialized" << std::endl;
-    }
+	void InitializeGameManager(entt::registry& registry) {
+		// Create a GameManager in the registry context
+		registry.ctx().emplace<GameManager>();
+		std::cout << "GameManager initialized" << std::endl;
+	}
 
-    void UpdateGameManager(entt::registry& registry, float deltaTime) {
-        // Get the GameManager from the registry context
-        auto& gameManager = registry.ctx().get<GameManager>();
+	void UpdateGameManager(entt::registry& registry, float deltaTime) {
+		// Get the GameManager from the registry context
+		auto& gameManager = registry.ctx().get<GameManager>();
+		// Handle keyboard input for toggling visibility 
+		HandleVisibilityToggleInput(registry);
 
-        // Handle keyboard input for toggling visibility
-        HandleVisibilityToggleInput(registry);
+		// Update player entities (will use the Player component's on_update method) 
+		auto playerView = registry.view();
+		for (auto entity : playerView) {
+			registry.patch(entity); // This will trigger the Player's on_update method 
+		}
+		// Update GPU instances from Transform components 
+		UpdateGPUInstances(registry); 
+	}
 
-        // Update player movement based on input
-        UpdatePlayerMovement(registry, deltaTime);
+	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
+		// Get the input from the registry context
+		auto& input = registry.ctx().get<UTIL::Input>();
 
-        // Update GPU instances from Transform components
-        UpdateGPUInstances(registry);
-    }
+		// Find the player entity
+		auto playerView = registry.view<Player, Transform>();
+		if (playerView.begin() == playerView.end()) {
+			std::cout << "No player entity found" << std::endl;
+			return;
+		}
 
-    void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
-        // Get the input from the registry context
-        auto& input = registry.ctx().get<UTIL::Input>();
+		// Get the player entity and its transform
+		auto playerEntity = *playerView.begin();
+		auto& transform = registry.get<Transform>(playerEntity);
 
-        // Find the player entity
-        auto playerView = registry.view<Player, Transform>();
-        if (playerView.begin() == playerView.end()) {
-            std::cout << "No player entity found" << std::endl;
-            return;
-        }
+		// Get the GameManager for player speed
+		auto& gameManager = registry.ctx().get<GameManager>();
+		float speed = gameManager.playerSpeed * deltaTime;
 
-        // Get the player entity and its transform
-        auto playerEntity = *playerView.begin();
-        auto& transform = registry.get<Transform>(playerEntity);
+		// Check for keyboard input
+		float rightKey = 0.0f, leftKey = 0.0f, upKey = 0.0f, downKey = 0.0f;
+		input.immediateInput.GetState(G_KEY_RIGHT, rightKey);
+		input.immediateInput.GetState(G_KEY_LEFT, leftKey);
+		input.immediateInput.GetState(G_KEY_UP, upKey);
+		input.immediateInput.GetState(G_KEY_DOWN, downKey);
 
-        // Get the GameManager for player speed
-        auto& gameManager = registry.ctx().get<GameManager>();
-        float speed = gameManager.playerSpeed * deltaTime;
+		// Movement vectors
+		GW::MATH::GVECTORF movement = { 0.0f, 0.0f, 0.0f };
 
-        // Check for keyboard input
-        float rightKey = 0.0f, leftKey = 0.0f, upKey = 0.0f, downKey = 0.0f;
-        input.immediateInput.GetState(G_KEY_RIGHT, rightKey);
-        input.immediateInput.GetState(G_KEY_LEFT, leftKey);
-        input.immediateInput.GetState(G_KEY_UP, upKey);
-        input.immediateInput.GetState(G_KEY_DOWN, downKey);
+		// Check arrow keys for movement using the key states we retrieved
+		if (rightKey > 0.0f) {
+			movement.x += speed;
+		}
+		if (leftKey > 0.0f) {
+			movement.x -= speed;
+		}
+		if (upKey > 0.0f) {
+			movement.z += speed;
+		}
+		if (downKey > 0.0f) {
+			movement.z -= speed;
+		}
 
-        // Movement vectors
-        GW::MATH::GVECTORF movement = { 0.0f, 0.0f, 0.0f };
+		// Apply movement to transform
+		if (movement.x != 0.0f || movement.z != 0.0f) {
+			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
+			std::cout << "Player moved: " << movement.x << ", " << movement.z << std::endl;
+		}
+	}
 
-        // Check arrow keys for movement using the key states we retrieved
-        if (rightKey > 0.0f) {
-            movement.x += speed;
-        }
-        if (leftKey > 0.0f) {
-            movement.x -= speed;
-        }
-        if (upKey > 0.0f) {
-            movement.z += speed;
-        }
-        if (downKey > 0.0f) {
-            movement.z -= speed;
-        }
+	void UpdateGPUInstances(entt::registry& registry) {
+		// Get all entities with Transform and MeshCollection components
+		auto transformView = registry.view<Transform, MeshCollection>();
 
-        // Apply movement to transform
-        if (movement.x != 0.0f || movement.z != 0.0f) {
-            GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
-            std::cout << "Player moved: " << movement.x << ", " << movement.z << std::endl;
-        }
-    }
+		// For each entity with Transform and MeshCollection
+		for (auto entity : transformView) {
+			auto& transform = registry.get<Transform>(entity);
+			auto& meshCollection = registry.get<MeshCollection>(entity);
 
-    void UpdateGPUInstances(entt::registry& registry) {
-        // Get all entities with Transform and MeshCollection components
-        auto transformView = registry.view<Transform, MeshCollection>();
+			// Update the transform of each mesh in the collection
+			for (auto meshEntity : meshCollection.meshEntities) {
+				if (registry.all_of<DRAW::GPUInstance>(meshEntity)) {
+					auto& gpuInstance = registry.get<DRAW::GPUInstance>(meshEntity);
+					gpuInstance.transform = transform.matrix;
+				}
+			}
+		}
+	}
 
-        // For each entity with Transform and MeshCollection
-        for (auto entity : transformView) {
-            auto& transform = registry.get<Transform>(entity);
-            auto& meshCollection = registry.get<MeshCollection>(entity);
+	// Map to store collections of entities by name
+	std::map<std::string, std::vector<entt::entity>> modelCollections;
 
-            // Update the transform of each mesh in the collection
-            for (auto meshEntity : meshCollection.meshEntities) {
-                if (registry.all_of<DRAW::GPUInstance>(meshEntity)) {
-                    auto& gpuInstance = registry.get<DRAW::GPUInstance>(meshEntity);
-                    gpuInstance.transform = transform.matrix;
-                }
-            }
-        }
-    }
+	void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName) {
+		modelCollections[collectionName].push_back(entity);
+	}
 
-    // Map to store collections of entities by name
-    std::map<std::string, std::vector<entt::entity>> modelCollections;
+	std::vector<entt::entity> GetEntitiesFromCollection(entt::registry& registry, const std::string& collectionName) {
+		if (modelCollections.find(collectionName) != modelCollections.end()) {
+			return modelCollections[collectionName];
+		}
+		return std::vector<entt::entity>();
+	}
 
-    void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName) {
-        modelCollections[collectionName].push_back(entity);
-    }
+	entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::string& modelName) {
+		// Create the entity
+		entt::entity gameEntity = registry.create();
 
-    std::vector<entt::entity> GetEntitiesFromCollection(entt::registry& registry, const std::string& collectionName) {
-        if (modelCollections.find(collectionName) != modelCollections.end()) {
-            return modelCollections[collectionName];
-        }
-        return std::vector<entt::entity>();
-    }
+		// Add a MeshCollection component
+		registry.emplace<MeshCollection>(gameEntity);
 
-    entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::string& modelName) {
-        // Create the entity
-        entt::entity gameEntity = registry.create();
+		// Add a Transform component with identity matrix initially
+		auto& transform = registry.emplace<Transform>(gameEntity);
+		GW::MATH::GMatrix::IdentityF(transform.matrix);
 
-        // Add a MeshCollection component
-        registry.emplace<MeshCollection>(gameEntity);
+		// Get entities from the model collection
+		auto modelEntities = GetEntitiesFromCollection(registry, modelName);
+		std::cout << "Model collection " << modelName << " has " << modelEntities.size() << " entities" << std::endl;
 
-        // Add a Transform component with identity matrix initially
-        auto& transform = registry.emplace<Transform>(gameEntity);
-        GW::MATH::GMatrix::IdentityF(transform.matrix);
+		// For each entity in the model collection
+		for (auto modelEntity : modelEntities) {
+			// Create a new entity for the mesh
+			entt::entity meshEntity = registry.create();
 
-        // Get entities from the model collection
-        auto modelEntities = GetEntitiesFromCollection(registry, modelName);
-        std::cout << "Model collection " << modelName << " has " << modelEntities.size() << " entities" << std::endl;
+			// Copy the GeometryData and GPUInstance components
+			if (registry.all_of<DRAW::GeometryData>(modelEntity)) {
+				auto& geomData = registry.get<DRAW::GeometryData>(modelEntity);
+				registry.emplace<DRAW::GeometryData>(meshEntity, geomData);
+			}
 
-        // For each entity in the model collection
-        for (auto modelEntity : modelEntities) {
-            // Create a new entity for the mesh
-            entt::entity meshEntity = registry.create();
+			if (registry.all_of<DRAW::GPUInstance>(modelEntity)) {
+				auto& gpuInstance = registry.get<DRAW::GPUInstance>(modelEntity);
+				registry.emplace<DRAW::GPUInstance>(meshEntity, gpuInstance);
 
-            // Copy the GeometryData and GPUInstance components
-            if (registry.all_of<DRAW::GeometryData>(modelEntity)) {
-                auto& geomData = registry.get<DRAW::GeometryData>(modelEntity);
-                registry.emplace<DRAW::GeometryData>(meshEntity, geomData);
-            }
+				if (modelEntities[0] == modelEntity) {
+					transform.matrix = gpuInstance.transform; // Copy the entire transform
+				}
+			}
 
-            if (registry.all_of<DRAW::GPUInstance>(modelEntity)) {
-                auto& gpuInstance = registry.get<DRAW::GPUInstance>(modelEntity);
-                registry.emplace<DRAW::GPUInstance>(meshEntity, gpuInstance);
+			// Add the mesh entity to the game entity's MeshCollection
+			auto& meshCollection = registry.get<MeshCollection>(gameEntity);
+			meshCollection.meshEntities.push_back(meshEntity);
+		}
 
-                if (modelEntities[0] == modelEntity) {
-                    transform.matrix = gpuInstance.transform; // Copy the entire transform
-                }
-            }
+		return gameEntity;
+	}
 
-            // Add the mesh entity to the game entity's MeshCollection
-            auto& meshCollection = registry.get<MeshCollection>(gameEntity);
-            meshCollection.meshEntities.push_back(meshEntity);
-        }
+	// Toggle visibility of an entity
+	void ToggleEntityVisibility(entt::registry& registry, entt::entity entity) {
+		// Get the mesh collection for this entity
+		if (!registry.all_of<MeshCollection>(entity)) {
+			return;
+		}
 
-        return gameEntity;
-    }
+		auto& meshCollection = registry.get<MeshCollection>(entity);
 
-    // Toggle visibility of an entity
-    void ToggleEntityVisibility(entt::registry& registry, entt::entity entity) {
-        // Get the mesh collection for this entity
-        if (!registry.all_of<MeshCollection>(entity)) {
-            return;
-        }
+		// Toggle DoNotRender tag for each mesh entity
+		for (auto meshEntity : meshCollection.meshEntities) {
+			if (registry.all_of<DRAW::DoNotRender>(meshEntity)) {
+				registry.remove<DRAW::DoNotRender>(meshEntity);
+			}
+			else {
+				registry.emplace<DRAW::DoNotRender>(meshEntity);
+			}
+		}
+	}
 
-        auto& meshCollection = registry.get<MeshCollection>(entity);
+	// Set visibility of an entity
+	void SetEntityVisibility(entt::registry& registry, entt::entity entity, bool visible) {
+		// Get the mesh collection for this entity
+		if (!registry.all_of<MeshCollection>(entity)) {
+			return;
+		}
 
-        // Toggle DoNotRender tag for each mesh entity
-        for (auto meshEntity : meshCollection.meshEntities) {
-            if (registry.all_of<DRAW::DoNotRender>(meshEntity)) {
-                registry.remove<DRAW::DoNotRender>(meshEntity);
-            }
-            else {
-                registry.emplace<DRAW::DoNotRender>(meshEntity);
-            }
-        }
-    }
+		auto& meshCollection = registry.get<MeshCollection>(entity);
 
-    // Set visibility of an entity
-    void SetEntityVisibility(entt::registry& registry, entt::entity entity, bool visible) {
-        // Get the mesh collection for this entity
-        if (!registry.all_of<MeshCollection>(entity)) {
-            return;
-        }
+		// Set DoNotRender tag for each mesh entity based on visibility
+		for (auto meshEntity : meshCollection.meshEntities) {
+			if (visible) {
+				if (registry.all_of<DRAW::DoNotRender>(meshEntity)) {
+					registry.remove<DRAW::DoNotRender>(meshEntity);
+				}
+			}
+			else {
+				if (!registry.all_of<DRAW::DoNotRender>(meshEntity)) {
+					registry.emplace<DRAW::DoNotRender>(meshEntity);
+				}
+			}
+		}
+	}
 
-        auto& meshCollection = registry.get<MeshCollection>(entity);
+	// Handle keyboard input for toggling visibility
+	void HandleVisibilityToggleInput(entt::registry& registry) {
+		// Get the input from the registry context
+		auto& input = registry.ctx().get<UTIL::Input>();
+		auto& gameManager = registry.ctx().get<GameManager>();
 
-        // Set DoNotRender tag for each mesh entity based on visibility
-        for (auto meshEntity : meshCollection.meshEntities) {
-            if (visible) {
-                if (registry.all_of<DRAW::DoNotRender>(meshEntity)) {
-                    registry.remove<DRAW::DoNotRender>(meshEntity);
-                }
-            }
-            else {
-                if (!registry.all_of<DRAW::DoNotRender>(meshEntity)) {
-                    registry.emplace<DRAW::DoNotRender>(meshEntity);
-                }
-            }
-        }
-    }
+		// Check for P key press to toggle player visibility
+		float pKey = 0.0f;
+		static bool pKeyPressed = false;
+		input.immediateInput.GetState(G_KEY_P, pKey);
 
-    // Handle keyboard input for toggling visibility
-    void HandleVisibilityToggleInput(entt::registry& registry) {
-        // Get the input from the registry context
-        auto& input = registry.ctx().get<UTIL::Input>();
-        auto& gameManager = registry.ctx().get<GameManager>();
+		if (pKey > 0.0f && !pKeyPressed) {
+			pKeyPressed = true;
+			gameManager.playerVisible = !gameManager.playerVisible;
 
-        // Check for P key press to toggle player visibility
-        float pKey = 0.0f;
-        static bool pKeyPressed = false;
-        input.immediateInput.GetState(G_KEY_P, pKey);
+			// Find the player entity
+			auto playerView = registry.view<Player>();
+			if (playerView.begin() != playerView.end()) {
+				auto playerEntity = *playerView.begin();
+				SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
+				std::cout << "Player visibility toggled: " << (gameManager.playerVisible ? "visible" : "hidden") << std::endl;
+			}
+		}
+		else if (pKey <= 0.0f) {
+			pKeyPressed = false;
+		}
 
-        if (pKey > 0.0f && !pKeyPressed) {
-            pKeyPressed = true;
-            gameManager.playerVisible = !gameManager.playerVisible;
+		// Check for E key press to toggle enemy visibility
+		float eKey = 0.0f;
+		static bool eKeyPressed = false;
+		input.immediateInput.GetState(G_KEY_E, eKey);
 
-            // Find the player entity
-            auto playerView = registry.view<Player>();
-            if (playerView.begin() != playerView.end()) {
-                auto playerEntity = *playerView.begin();
-                SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
-                std::cout << "Player visibility toggled: " << (gameManager.playerVisible ? "visible" : "hidden") << std::endl;
-            }
-        }
-        else if (pKey <= 0.0f) {
-            pKeyPressed = false;
-        }
+		if (eKey > 0.0f && !eKeyPressed) {
+			eKeyPressed = true;
+			gameManager.enemyVisible = !gameManager.enemyVisible;
 
-        // Check for E key press to toggle enemy visibility
-        float eKey = 0.0f;
-        static bool eKeyPressed = false;
-        input.immediateInput.GetState(G_KEY_E, eKey);
+			// Find the enemy entity
+			auto enemyView = registry.view<Enemy>();
+			if (enemyView.begin() != enemyView.end()) {
+				auto enemyEntity = *enemyView.begin();
+				SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
+				std::cout << "Enemy visibility toggled: " << (gameManager.enemyVisible ? "visible" : "hidden") << std::endl;
+			}
+		}
+		else if (eKey <= 0.0f) {
+			eKeyPressed = false;
+		}
+	}
 
-        if (eKey > 0.0f && !eKeyPressed) {
-            eKeyPressed = true;
-            gameManager.enemyVisible = !gameManager.enemyVisible;
+	// on_update method for the GameManager component
+	void on_update(entt::registry& registry, entt::entity entity) {
+		// Get the delta time from the registry context
+		auto& deltaTime = registry.ctx().get<UTIL::DeltaTime>().dtSec;
 
-            // Find the enemy entity
-            auto enemyView = registry.view<Enemy>();
-            if (enemyView.begin() != enemyView.end()) {
-                auto enemyEntity = *enemyView.begin();
-                SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
-                std::cout << "Enemy visibility toggled: " << (gameManager.enemyVisible ? "visible" : "hidden") << std::endl;
-            }
-        }
-        else if (eKey <= 0.0f) {
-            eKeyPressed = false;
-        }
-    }
+		// Update the GameManager
+		UpdateGameManager(registry, static_cast<float>(deltaTime));
+	}
 
-    // on_update method for the GameManager component
-    void on_update(entt::registry& registry, entt::entity entity) {
-        // Get the delta time from the registry context
-        auto& deltaTime = registry.ctx().get<UTIL::DeltaTime>().dtSec;
+	// Connect the GameManager logic to the registry
+	CONNECT_COMPONENT_LOGIC() {
+		// Initialize the GameManager
+		InitializeGameManager(registry);
 
-        // Update the GameManager
-        UpdateGameManager(registry, static_cast<float>(deltaTime));
-    }
-
-    // Connect the GameManager logic to the registry
-    CONNECT_COMPONENT_LOGIC() {
-        // Initialize the GameManager
-        InitializeGameManager(registry);
-
-        // Connect the on_update method
-        registry.on_update<GameManager>().connect<&on_update>();
-    }
+		// Connect the on_update method
+		registry.on_update<GameManager>().connect<&on_update>();
+	}
 
 } // namespace GAME
