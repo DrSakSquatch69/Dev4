@@ -4,6 +4,8 @@
 #include "../CCL.h" 
 #include "GameComponents.h" 
 #include "../UTIL/Utilities.h"
+#include "../UTIL/GameConfig.h"
+#include <cmath> // For sqrt and normalization
 
 namespace GAME {
 	// Update method for the Player component 
