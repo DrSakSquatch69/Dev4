@@ -40,7 +40,7 @@ int main()
 	
 	MainLoopBehavior(registry); // update windows and input
 
-	CreatePlayer(registry);
+	
 	// clear all entities and components from the registry
 	// invokes on_destroy() for all components that have it
 	// registry will still be intact while this is happening

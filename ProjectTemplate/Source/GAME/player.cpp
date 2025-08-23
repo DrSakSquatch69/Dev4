@@ -5,7 +5,7 @@ namespace GAME
 	// Update the player's position based on input 
 	void UpdatePlayer(entt::registry& registry, entt::entity entity, float deltaTime, float speed) {
 		// Get the input from the registry context 
-		auto& input = registry.ctx().getUTIL::Input();
+		auto& input = registry.ctx().get<UTIL::Input>();
 
 		// Get the player's transform 
 		if (!registry.all_of(entity)) return;
@@ -40,7 +40,7 @@ namespace GAME
 
 		// Apply movement to transform if there is any movement 
 		if (movement.x != 0.0f || movement.z != 0.0f) {
-			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
+			GW::MATH::GMatrix::TranslateGlobalF(transform, movement, transform);
 			std::cout << "Player moved: " << movement.x << ", " << movement.z << std::endl;
 		}
 	}
