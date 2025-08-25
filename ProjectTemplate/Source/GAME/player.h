@@ -12,7 +12,7 @@ namespace GAME {
 	void UpdatePlayer(entt::registry& registry, entt::entity entity, float deltaTime, float speed);
 
 	// on_update method for the Player component 
-	void on_update(entt::registry& registry, entt::entity entity);
+	void player_on_update(entt::registry& registry, entt::entity entity);
 }
 
 #endif // PLAYER_H
