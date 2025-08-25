@@ -8,9 +8,8 @@ namespace GAME
 		auto& input = registry.ctx().get<UTIL::Input>();
 
 		// Get the player's transform 
-		if (!registry.all_of(entity)) return;
-
-		auto& transform = registry.get(entity);
+		if (!registry.all_of<GAME::Transform>(entity)) return;
+		auto& transform = registry.get<GAME::Transform>(entity);
 
 		// Check for WASD key input 
 		float wKey = 0.0f, aKey = 0.0f, sKey = 0.0f, dKey = 0.0f;
@@ -40,7 +39,7 @@ namespace GAME
 
 		// Apply movement to transform if there is any movement 
 		if (movement.x != 0.0f || movement.z != 0.0f) {
-			GW::MATH::GMatrix::TranslateGlobalF(transform, movement, transform);
+			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
 			std::cout << "Player moved: " << movement.x << ", " << movement.z << std::endl;
 		}
 	}
