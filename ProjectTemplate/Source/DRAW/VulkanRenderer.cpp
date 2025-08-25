@@ -95,7 +95,7 @@ namespace DRAW
 
 		// Add the 2 buffers, this will create the initial buffers so we can finish building our descriptor set
 		auto& storageBuffer = registry.emplace<VulkanGPUInstanceBuffer>(entity,
-			VulkanGPUInstanceBuffer{16}); // Start with a reasonable size of elements. The Buffer will grow if it needs to later
+			VulkanGPUInstanceBuffer{64}); // Start with a reasonable size of elements. The Buffer will grow if it needs to later
 		auto& uniformBuffer = registry.emplace<VulkanUniformBuffer>(entity);
 
 		 

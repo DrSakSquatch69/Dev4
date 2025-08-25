@@ -76,6 +76,27 @@ namespace GAME
 				auto& bulletTransform = registry.get<Transform>(bulletEntity);
 				bulletTransform.matrix = transform.matrix; // Copy the player's transform
 
+				// Add a Velocity component to the bullet with an initial direction and speed
+				// For now, we'll use a simple upward direction (positive Z)
+				GW::MATH::GVECTORF direction = { 0.0f, 0.0f, 1.0f };
+				float bulletSpeed = 10.0f; // Units per second
+
+				// Determine direction based on which key was pressed
+				if (upKey > 0.0f) {
+					direction = { 0.0f, 0.0f, 1.0f }; // Forward (positive Z)
+				}
+				else if (downKey > 0.0f) {
+					direction = { 0.0f, 0.0f, -1.0f }; // Backward (negative Z)
+				}
+				else if (leftKey > 0.0f) {
+					direction = { -1.0f, 0.0f, 0.0f }; // Left (negative X)
+				}
+				else if (rightKey > 0.0f) {
+					direction = { 1.0f, 0.0f, 0.0f }; // Right (positive X)
+				}
+
+				registry.emplace<Velocity>(bulletEntity, direction, bulletSpeed);
+
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
 

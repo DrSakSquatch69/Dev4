@@ -20,6 +20,10 @@ namespace GAME {
     void UpdateGameManager(entt::registry& registry, float deltaTime) {
         // Get the GameManager from the registry context
         auto& gameManager = registry.ctx().get<GameManager>();
+
+		// Update entity transforms based on velocity (new system)
+		UpdateVelocitySystem(registry, deltaTime);
+
         // Handle keyboard input for toggling visibility 
         HandleVisibilityToggleInput(registry);
 
@@ -98,6 +102,29 @@ namespace GAME {
 					gpuInstance.transform = transform.matrix;
 				}
 			}
+		}
+	}
+
+	// Update entity transforms based on velocity
+	void UpdateVelocitySystem(entt::registry& registry, float deltaTime) {
+		// Get all entities with Transform and Velocity components
+		auto velocityView = registry.view<Transform, Velocity>();
+
+		// Update each entity's position based on its velocity
+		for (auto entity : velocityView) {
+			auto& transform = registry.get<Transform>(entity);
+			auto& velocity = registry.get<Velocity>(entity);
+
+			// Calculate movement vector based on velocity direction and speed
+			GW::MATH::GVECTORF movement = velocity.direction;
+
+			// Scale by speed and deltaTime
+			movement.x *= velocity.speed * deltaTime;
+			movement.y *= velocity.speed * deltaTime;
+			movement.z *= velocity.speed * deltaTime;
+
+			// Apply movement to transform
+			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
 		}
 	}
 

@@ -95,7 +95,7 @@ void GraphicsBehavior(entt::registry& registry)
 	int startX = (*config).at("Window").at("xstart").as<int>();
 	int startY = (*config).at("Window").at("ystart").as<int>();
 	registry.emplace<APP::Window>(display,
-		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 1"});
+		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2"});
 
 
 	// Create the input
@@ -266,8 +266,14 @@ void GameplayBehavior(entt::registry& registry)
 		// Create enemy entity
 		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 		registry.emplace<GAME::Enemy>(enemyEntity);
-		std::cout << "Enemy entity created" << std::endl;
+		//std::cout << "Enemy entity created" << std::endl;
 
+		// Add a Velocity component to the enemy with an initial direction and speed
+		GW::MATH::GVECTORF enemyDirection = { -0.5f, 0.0f, 0.5f }; // Diagonal direction
+		float enemySpeed = 3.0f; // Units per second
+		registry.emplace<GAME::Velocity>(enemyEntity, enemyDirection, enemySpeed);
+
+		std::cout << "Enemy entity created with velocity component" << std::endl;
 		// Set initial visibility
 		auto& gameManager = registry.ctx().get<GAME::GameManager>();
 		GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
