@@ -74,6 +74,6 @@ namespace GAME
 	// Connect the Player logic to the registry 
 	CONNECT_COMPONENT_LOGIC() {
 		// Connect the on_update method for the Player component 
-		registry.on_update<Player>().connect<&on_update>()
+		registry.on_update<Player>().connect<&on_update>();
 	}
 }
