@@ -10,20 +10,27 @@ namespace GAME {
 		std::cout << "GameManager initialized" << std::endl;
 	}
 
-	void UpdateGameManager(entt::registry& registry, float deltaTime) {
-		// Get the GameManager from the registry context
-		auto& gameManager = registry.ctx().get<GameManager>();
-		// Handle keyboard input for toggling visibility 
-		HandleVisibilityToggleInput(registry);
+    // Pseudocode plan:
+    // 1. The error is caused by calling registry.view() with no component types, which is not valid in EnTT v3+.
+    // 2. To iterate over all entities, use registry.each() instead of registry.view().
+    // 3. If you want to iterate over entities with a specific component (e.g., Player), use registry.view<Player>().
+    // 4. Fix the line in UpdateGameManager that currently reads: auto playerView = registry.view();
+    // 5. Replace it with registry.view<Player>() if you want all Player entities, or use registry.each() for all entities.
 
-		// Update player entities (will use the Player component's on_update method) 
-		auto playerView = registry.view();
-		for (auto entity : playerView) {
-			registry.patch(entity); // This will trigger the Player's on_update method 
-		}
-		// Update GPU instances from Transform components 
-		UpdateGPUInstances(registry); 
-	}
+    void UpdateGameManager(entt::registry& registry, float deltaTime) {
+        // Get the GameManager from the registry context
+        auto& gameManager = registry.ctx().get<GameManager>();
+        // Handle keyboard input for toggling visibility 
+        HandleVisibilityToggleInput(registry);
+
+        // Update player entities (will use the Player component's on_update method) 
+        auto playerView = registry.view<Player>();
+        for (auto entity : playerView) {
+            registry.patch<Player>(entity); // This will trigger the Player's on_update method 
+        }
+        // Update GPU instances from Transform components 
+        UpdateGPUInstances(registry); 
+    }
 
 	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
 		// Get the input from the registry context

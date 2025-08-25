@@ -48,7 +48,8 @@ namespace GAME
 	// on_update method for the Player component 
 	void on_update(entt::registry& registry, entt::entity entity) {
 		// Get the delta time from the registry context 
-		auto& deltaTime = registry.ctx().get<UTIL::DeltaTime>();
+		auto& deltaTimeComponent = registry.ctx().get<UTIL::DeltaTime>();
+		float deltaTime = deltaTimeComponent.dtSec;
 
 		// Get the config file for player speed 
 		std::shared_ptr config = registry.ctx().get<UTIL::Config>().gameConfig;
@@ -59,7 +60,7 @@ namespace GAME
 
 		try {
 			// Try to get the value as a string and convert to float
-			std::string speedStr = config->at("Player").at("speed").get<std::string>();
+			std::string speedStr = config->at("Player").at("speed").as<std::string>();
 			playerSpeed = std::stof(speedStr);
 		}
 		catch (const std::exception& e) {
@@ -68,7 +69,7 @@ namespace GAME
 		}
 
 		// Update the player 
-		UpdatePlayer(registry, entity, static_cast(deltaTime), playerSpeed);
+		UpdatePlayer(registry, entity, deltaTime, playerSpeed);
 	}
 
 	// Connect the Player logic to the registry 
