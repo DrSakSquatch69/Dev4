@@ -46,10 +46,18 @@ namespace GAME
 
 	// on_update method for the Player component 
 	void player_on_update(entt::registry& registry, entt::entity entity) {
-		// Get the delta time from the registry context 
-		auto& deltaTimeComponent = registry.ctx().get<UTIL::DeltaTime>();
-		float deltaTime = deltaTimeComponent.dtSec;
+		float deltaTime = 0.016f; // Default to 60fps (1/60 = 0.016) if DeltaTime not available
 
+		// Safely check if DeltaTime exists in the registry context
+		try {
+			if (registry.ctx().contains<UTIL::DeltaTime>()) {
+				deltaTime = static_cast<float>(registry.ctx().get<UTIL::DeltaTime>().dtSec);
+			}
+		}
+		catch (const std::exception& e) {
+			std::cout << "DeltaTime not available, using default: " << e.what() << std::endl;
+			// Keep using the default value
+		}
 		// Get the config file for player speed 
 		std::shared_ptr config = registry.ctx().get<UTIL::Config>().gameConfig;
 
