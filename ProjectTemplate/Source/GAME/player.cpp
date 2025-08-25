@@ -42,6 +42,46 @@ namespace GAME
 			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
 			std::cout << "Player moved: " << movement.x << ", " << movement.z << std::endl;
 		}
+
+		// Handle firing logic
+		// First check if the player has a Firing component
+		if (registry.all_of<Firing>(entity)) {
+			// Reduce the cooldown
+			auto& firing = registry.get<Firing>(entity);
+			firing.cooldown -= deltaTime;
+
+			// If cooldown reaches 0 or below, remove the Firing component
+			if (firing.cooldown <= 0.0f) {
+				registry.remove<Firing>(entity);
+				std::cout << "Firing cooldown complete, ready to fire again" << std::endl;
+			}
+		}
+		else {
+			// Check for firing keys
+			float upKey = 0.0f, downKey = 0.0f, leftKey = 0.0f, rightKey = 0.0f;
+			input.immediateInput.GetState(G_KEY_UP, upKey);
+			input.immediateInput.GetState(G_KEY_DOWN, downKey);
+			input.immediateInput.GetState(G_KEY_LEFT, leftKey);
+			input.immediateInput.GetState(G_KEY_RIGHT, rightKey);
+
+			// If any firing key is pressed, create a bullet and add the Firing component
+			if (upKey > 0.0f || downKey > 0.0f || leftKey > 0.0f || rightKey > 0.0f) {
+				// Create a bullet entity using the GAME namespace version of CreateGameEntityFromModel
+				entt::entity bulletEntity = GAME::CreateGameEntityFromModel(registry, "Bullet");
+
+				// Add the Bullet tag
+				registry.emplace<Bullet>(bulletEntity);
+
+				// Set the bullet's position to the player's position
+				auto& bulletTransform = registry.get<Transform>(bulletEntity);
+				bulletTransform.matrix = transform.matrix; // Copy the player's transform
+
+				// Add the Firing component to the player with a cooldown
+				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
+
+				std::cout << "Bullet fired!" << std::endl;
+			}
+		}
 	}
 
 	// on_update method for the Player component 

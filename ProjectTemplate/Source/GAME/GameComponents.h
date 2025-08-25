@@ -17,5 +17,10 @@ namespace GAME
     struct MeshCollection {
         std::vector<entt::entity> meshEntities;
     };
+
+    struct Firing {
+        float cooldown;    // Current cooldown time remaining
+        float maxCooldown; // Maximum cooldown time
+    };
 }// namespace GAME
 #endif // !GAME_COMPONENTS_H_
