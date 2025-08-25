@@ -10,14 +10,30 @@ namespace GAME {
 		std::cout << "GameManager initialized" << std::endl;
 	}
 
-    // Pseudocode plan:
-    // 1. The error is caused by calling registry.view() with no component types, which is not valid in EnTT v3+.
-    // 2. To iterate over all entities, use registry.each() instead of registry.view().
-    // 3. If you want to iterate over entities with a specific component (e.g., Player), use registry.view<Player>().
-    // 4. Fix the line in UpdateGameManager that currently reads: auto playerView = registry.view();
-    // 5. Replace it with registry.view<Player>() if you want all Player entities, or use registry.each() for all entities.
+	// Update entity transforms based on velocity
+	void UpdateVelocitySystem(entt::registry& registry, float deltaTime) {
+		// Get all entities with Transform and Velocity components
+		auto velocityView = registry.view<Transform, Velocity>();
 
-    void UpdateGameManager(entt::registry& registry, float deltaTime) {
+		// Update each entity's position based on its velocity
+		for (auto entity : velocityView) {
+			auto& transform = registry.get<Transform>(entity);
+			auto& velocity = registry.get<Velocity>(entity);
+
+			// Calculate movement vector based on velocity direction and speed
+			GW::MATH::GVECTORF movement = velocity.direction;
+
+			// Scale by speed and deltaTime
+			movement.x *= velocity.speed * deltaTime;
+			movement.y *= velocity.speed * deltaTime;
+			movement.z *= velocity.speed * deltaTime;
+
+			// Apply movement to transform
+			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
+		}
+	}
+    
+	void UpdateGameManager(entt::registry& registry, float deltaTime) {
         // Get the GameManager from the registry context
         auto& gameManager = registry.ctx().get<GameManager>();
 
@@ -105,28 +121,6 @@ namespace GAME {
 		}
 	}
 
-	// Update entity transforms based on velocity
-	void UpdateVelocitySystem(entt::registry& registry, float deltaTime) {
-		// Get all entities with Transform and Velocity components
-		auto velocityView = registry.view<Transform, Velocity>();
-
-		// Update each entity's position based on its velocity
-		for (auto entity : velocityView) {
-			auto& transform = registry.get<Transform>(entity);
-			auto& velocity = registry.get<Velocity>(entity);
-
-			// Calculate movement vector based on velocity direction and speed
-			GW::MATH::GVECTORF movement = velocity.direction;
-
-			// Scale by speed and deltaTime
-			movement.x *= velocity.speed * deltaTime;
-			movement.y *= velocity.speed * deltaTime;
-			movement.z *= velocity.speed * deltaTime;
-
-			// Apply movement to transform
-			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
-		}
-	}
 
 	// Map to store collections of entities by name
 	std::map<std::string, std::vector<entt::entity>> modelCollections;

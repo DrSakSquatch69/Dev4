@@ -63,7 +63,6 @@ namespace GAME
 			input.immediateInput.GetState(G_KEY_DOWN, downKey);
 			input.immediateInput.GetState(G_KEY_LEFT, leftKey);
 			input.immediateInput.GetState(G_KEY_RIGHT, rightKey);
-
 			// If any firing key is pressed, create a bullet and add the Firing component
 			if (upKey > 0.0f || downKey > 0.0f || leftKey > 0.0f || rightKey > 0.0f) {
 				// Create a bullet entity using the GAME namespace version of CreateGameEntityFromModel
@@ -76,31 +75,48 @@ namespace GAME
 				auto& bulletTransform = registry.get<Transform>(bulletEntity);
 				bulletTransform.matrix = transform.matrix; // Copy the player's transform
 
-				// Add a Velocity component to the bullet with an initial direction and speed
-				// For now, we'll use a simple upward direction (positive Z)
-				GW::MATH::GVECTORF direction = { 0.0f, 0.0f, 1.0f };
-				float bulletSpeed = 10.0f; // Units per second
+				// Get the bullet speed from the config file
+				std::shared_ptr config = registry.ctx().get<UTIL::Config>().gameConfig;
+				float bulletSpeed = 20.0f; // Default value
 
-				// Determine direction based on which key was pressed
-				if (upKey > 0.0f) {
-					direction = { 0.0f, 0.0f, 1.0f }; // Forward (positive Z)
+				try {
+					// Try to get the value as a string and convert to float
+					std::string speedStr = config->at("Bullet").at("speed").as<std::string>();
+					bulletSpeed = std::stof(speedStr);
 				}
-				else if (downKey > 0.0f) {
-					direction = { 0.0f, 0.0f, -1.0f }; // Backward (negative Z)
-				}
-				else if (leftKey > 0.0f) {
-					direction = { -1.0f, 0.0f, 0.0f }; // Left (negative X)
-				}
-				else if (rightKey > 0.0f) {
-					direction = { 1.0f, 0.0f, 0.0f }; // Right (positive X)
+				catch (const std::exception& e) {
+					std::cout << "Bullet speed not found in config, using default: " << e.what() << std::endl;
+					// Keep the default value
 				}
 
+				// Create direction vector based on which keys are pressed
+				GW::MATH::GVECTORF direction = { 0.0f, 0.0f, 0.0f };
+
+				// Handle diagonal directions by combining key inputs
+				if (upKey > 0.0f) direction.z += 1.0f; // Forward (positive Z)
+				if (downKey > 0.0f) direction.z -= 1.0f; // Backward (negative Z)
+				if (leftKey > 0.0f) direction.x -= 1.0f; // Left (negative X)
+				if (rightKey > 0.0f) direction.x += 1.0f; // Right (positive X)
+
+				// Normalize the direction vector to ensure consistent speed in all directions
+				float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
+				if (length > 0.0f) {
+					direction.x /= length;
+					direction.z /= length;
+				}
+				else {
+					// Fallback to forward direction if no keys are pressed (shouldn't happen)
+					direction.z = 1.0f;
+				}
+
+				// Add the Velocity component to the bullet with the normalized direction and speed from config
 				registry.emplace<Velocity>(bulletEntity, direction, bulletSpeed);
 
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
 
-				std::cout << "Bullet fired!" << std::endl;
+				std::cout << "Bullet fired with direction: " << direction.x << ", " << direction.z
+					<< " and speed: " << bulletSpeed << std::endl;
 			}
 		}
 	}
