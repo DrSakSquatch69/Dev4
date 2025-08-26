@@ -32,25 +32,25 @@ namespace GAME {
 			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
 		}
 	}
-    
+
 	void UpdateGameManager(entt::registry& registry, float deltaTime) {
-        // Get the GameManager from the registry context
-        auto& gameManager = registry.ctx().get<GameManager>();
+		// Get the GameManager from the registry context
+		auto& gameManager = registry.ctx().get<GameManager>();
 
 		// Update entity transforms based on velocity (new system)
 		UpdateVelocitySystem(registry, deltaTime);
 
-        // Handle keyboard input for toggling visibility 
-        HandleVisibilityToggleInput(registry);
+		// Handle keyboard input for toggling visibility 
+		HandleVisibilityToggleInput(registry);
 
-        // Update player entities (will use the Player component's on_update method) 
-        auto playerView = registry.view<Player>();
-        for (auto entity : playerView) {
-            registry.patch<Player>(entity); // This will trigger the Player's on_update method 
-        }
-        // Update GPU instances from Transform components 
-        UpdateGPUInstances(registry); 
-    }
+		// Update player entities (will use the Player component's on_update method) 
+		auto playerView = registry.view<Player>();
+		for (auto entity : playerView) {
+			registry.patch<Player>(entity); // This will trigger the Player's on_update method 
+		}
+		// Update GPU instances from Transform components 
+		UpdateGPUInstances(registry);
+	}
 
 	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
 		// Get the input from the registry context
