@@ -21,7 +21,7 @@ int main()
 {
 
 	// All components, tags, and systems are stored in a single registry
-	entt::registry registry;	
+	entt::registry registry;
 
 	// initialize the ECS Component Logic
 	CCL::InitializeComponentLogic(registry);
@@ -37,14 +37,14 @@ int main()
 	GraphicsBehavior(registry); // create windows, surfaces, and renderers
 
 	GameplayBehavior(registry); // create entities and components for gameplay
-	
+
 	MainLoopBehavior(registry); // update windows and input
 
-	
+
 	// clear all entities and components from the registry
 	// invokes on_destroy() for all components that have it
 	// registry will still be intact while this is happening
-	registry.clear(); 
+	registry.clear();
 
 	return 0; // now destructors will be called for all components
 }
@@ -85,7 +85,7 @@ void GraphicsBehavior(entt::registry& registry)
 	auto ModelPath = (*config).at("Level1").at("modelPath").as<std::string>();
 
 	// TODO: Emplace CPULevel. Placing here to reduce occurrence of a json race condition crash
-	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{LevelFile, ModelPath});
+	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{ LevelFile, ModelPath });
 
 	CreatePlayer(registry);
 
@@ -95,11 +95,11 @@ void GraphicsBehavior(entt::registry& registry)
 	int startX = (*config).at("Window").at("xstart").as<int>();
 	int startY = (*config).at("Window").at("ystart").as<int>();
 	registry.emplace<APP::Window>(display,
-		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2"});
+		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2" });
 
 
 	// Create the input
-	auto& input =  registry.ctx().emplace<UTIL::Input>();
+	auto& input = registry.ctx().emplace<UTIL::Input>();
 	auto& window = registry.get<GW::SYSTEM::GWindow>(display);
 	input.bufferedInput.Create(window);
 	input.immediateInput.Create(window);
@@ -113,11 +113,11 @@ void GraphicsBehavior(entt::registry& registry)
 	std::string vertShader = (*config).at("Shaders").at("vertex").as<std::string>();
 	std::string pixelShader = (*config).at("Shaders").at("pixel").as<std::string>();
 	registry.emplace<DRAW::VulkanRendererInitialization>(display,
-		DRAW::VulkanRendererInitialization{ 
+		DRAW::VulkanRendererInitialization{
 			vertShader, pixelShader,
 			{ {0.2f, 0.2f, 0.25f, 1} } , { 1.0f, 0u }, 75.f, 0.1f, 100.0f });
 	registry.emplace<DRAW::VulkanRenderer>(display);
-	
+
 	// TODO : Emplace GPULevel
 	registry.emplace<DRAW::GPULevel>(display);
 
@@ -269,11 +269,19 @@ void GameplayBehavior(entt::registry& registry)
 		//std::cout << "Enemy entity created" << std::endl;
 
 		// Add a Velocity component to the enemy with an initial direction and speed
-		GW::MATH::GVECTORF enemyDirection = { -0.5f, 0.0f, 0.5f }; // Diagonal direction
-		float enemySpeed = 3.0f; // Units per second
+		GW::MATH::GVECTORF enemyDirection = UTIL::GetRandomVelocityVector();
+		float enemySpeed = 3.0f; // Default value
+		try {
+			std::string speedStr = config->at("Enemy1").at("speed").as<std::string>();
+			enemySpeed = std::stof(speedStr);
+		}
+		catch (const std::exception& e) {
+			std::cout << "Enemy speed not found in config, using default: " << e.what() << std::endl;
+		}
 		registry.emplace<GAME::Velocity>(enemyEntity, enemyDirection, enemySpeed);
 
-		std::cout << "Enemy entity created with velocity component" << std::endl;
+		std::cout << "Enemy created with random diagonal direction: " << enemyDirection.x << ", "
+			<< enemyDirection.z << " and speed: " << enemySpeed << std::endl;
 		// Set initial visibility
 		auto& gameManager = registry.ctx().get<GAME::GameManager>();
 		GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
@@ -289,7 +297,7 @@ void GameplayBehavior(entt::registry& registry)
 // This function will be called by the main loop to update the main loop
 // It will be responsible for updating any created windows and handling any input
 void MainLoopBehavior(entt::registry& registry)
-{	
+{
 	// main loop
 	int closedCount; // count of closed windows
 	auto winView = registry.view<APP::Window>(); // for updating all windows
@@ -302,7 +310,7 @@ void MainLoopBehavior(entt::registry& registry)
 			std::chrono::steady_clock::now() - start).count();
 		start = std::chrono::steady_clock::now();
 		// Cap delta time to min 30 fps. This will prevent too much time from simulating when dragging the window
-		if(elapsed > 1.0 / 30.0)
+		if (elapsed > 1.0 / 30.0)
 		{
 			elapsed = 1.0 / 30.0;
 		}
