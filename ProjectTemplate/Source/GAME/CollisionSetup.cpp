@@ -24,6 +24,8 @@ namespace GAME {
         std::cout << "Bullet entity is now collidable" << std::endl;
     }
 
+
+
     // Connect the collision setup logic to the registry
     CONNECT_COMPONENT_LOGIC() {
         // Connect the on_construct methods for the Player, Enemy, and Bullet components

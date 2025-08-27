@@ -22,7 +22,6 @@ namespace GAME {
                 // Set up a default collider
                 meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
                 meshCollection.collider.extent = { 1.0f, 1.0f, 1.0f, 0.0f }; // Default size
-                meshCollection.collider.orientation = { 0.0f, 0.0f, 0.0f, 1.0f }; // No rotation
             }
         }
     }

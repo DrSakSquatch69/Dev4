@@ -272,6 +272,38 @@ namespace GAME {
 		}
 	}
 
+	GW::MATH::GOBBF TransformOBBToWorldSpace(const GW::MATH::GOBBF& localOBB, const GW::MATH::GMATRIXF& transform) {
+		GW::MATH::GOBBF worldOBB = localOBB;
+
+		// 1. Extract scale from the transform matrix
+		GW::MATH::GVECTORF scale;
+		GW::MATH::GMatrix::GetScaleF(transform, scale);
+
+		// 2. Scale the extents of the OBB
+		worldOBB.extent.x *= scale.x;
+		worldOBB.extent.y *= scale.y;
+		worldOBB.extent.z *= scale.z;
+
+		// 3. Transform the center to world space
+		GW::MATH::GVECTORF worldCenter;
+		GW::MATH::GMatrix::VectorXMatrixF(transform, localOBB.center, worldCenter);
+		worldOBB.center = worldCenter;
+
+		// 4. Extract rotation from the transform matrix and apply it to the OBB orientation
+		GW::MATH::GQUATERNIONF transformRotation;
+		GW::MATH::GMatrix::GetRotationF(transform, transformRotation);
+
+		// 5. Combine the rotations (current OBB rotation * transform rotation)
+		GW::MATH::GQUATERNIONF combinedRotation;
+		combinedRotation.x = localOBB.rotation.x * transformRotation.w + localOBB.rotation.w * transformRotation.x + localOBB.rotation.y * transformRotation.z - localOBB.rotation.z * transformRotation.y;
+		combinedRotation.y = localOBB.rotation.y * transformRotation.w + localOBB.rotation.w * transformRotation.y + localOBB.rotation.z * transformRotation.x - localOBB.rotation.x * transformRotation.z;
+		combinedRotation.z = localOBB.rotation.z * transformRotation.w + localOBB.rotation.w * transformRotation.z + localOBB.rotation.x * transformRotation.y - localOBB.rotation.y * transformRotation.x;
+		combinedRotation.w = localOBB.rotation.w * transformRotation.w - localOBB.rotation.x * transformRotation.x - localOBB.rotation.y * transformRotation.y - localOBB.rotation.z * transformRotation.z;
+		worldOBB.rotation = combinedRotation;
+
+		return worldOBB;
+	}
+
 	// on_update method for the GameManager component
 	void on_update(entt::registry& registry, entt::entity entity) {
 		// Get the delta time from the registry context

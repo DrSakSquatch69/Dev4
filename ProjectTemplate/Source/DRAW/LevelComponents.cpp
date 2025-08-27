@@ -42,14 +42,13 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
                     GW::MATH::GMatrix::IdentityF(transform.matrix);
                 }
 
-                // Set the collider from the level data
+                // Set the collider from the level data 
                 if (model.colliderIndex < levelData.levelColliders.size()) {
                     meshCollection.collider = levelData.levelColliders[model.colliderIndex];
-                    std::cout << "Added collider to obstacle entity from model: " << model.filename
-                        << " with collider index: " << model.colliderIndex << std::endl;
+                    std::cout << "Added collider to obstacle entity from model: " << model.filename << " with collider index: " << model.colliderIndex << std::endl;
                 }
                 else {
-                    // Default collider if not found
+                    // Default collider if not found 
                     meshCollection.collider = {
                         GW::MATH::GIdentityVectorF, // center
                         GW::MATH::GIdentityVectorF, // extent
@@ -60,6 +59,7 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
 
                 std::cout << "Created collidable obstacle entity for model: " << model.filename << std::endl;
             }
+
             // Each model can have multiple meshes
             for (unsigned meshIdx = 0; meshIdx < model.meshCount; ++meshIdx)
             {

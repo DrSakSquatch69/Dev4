@@ -9,6 +9,8 @@
 #include "GAME/GameManager.h"
 #include "UTIL/GameConfig.h"
 #include "GAME/Player.h"
+#include "GAME/CollisionSystem.h"
+#include "GAME/CollisionHelper.h"
 
 // Local routines for specific application behavior
 void GraphicsBehavior(entt::registry& registry);
