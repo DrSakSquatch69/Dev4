@@ -8,6 +8,8 @@ namespace GAME
 	struct Enemy {};       // Tag to identify enemy entity
 	struct Bullet {};      // Tag to identify bullet entity
 	struct Collidable {};  // Tag to identify entities that can collide
+	struct Obstacle {};    // Tag to identify obstacles like walls
+
 
 	//*** Components ***//
 	struct Transform {
