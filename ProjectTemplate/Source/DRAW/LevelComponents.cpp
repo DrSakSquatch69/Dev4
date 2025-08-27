@@ -14,46 +14,49 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
         // For each blender object in the level
         for (const auto& blenderObj : levelData.blenderObjects)
         {
-            // Get the model and transform for this object
-            if (blenderObj.modelIndex >= levelData.levelModels.size()) continue;
+            if(blenderObj.modelIndex >= levelData.levelModels.size()) continue;
             const auto& model = levelData.levelModels[blenderObj.modelIndex];
+
+            // Check if the model is collidable
             if (model.isCollidable) {
                 // Create a new entity for the collidable object
                 entt::entity colliderEntity = registry.create();
-                // Add the Collidable tag 
+
+                // Add the Collidable tag
                 registry.emplace<GAME::Collidable>(colliderEntity);
 
-                // Add the Obstacle tag 
+                // Add the Obstacle tag
                 registry.emplace<GAME::Obstacle>(colliderEntity);
 
-                // Add a MeshCollection component 
+                // Add a MeshCollection component
                 auto& meshCollection = registry.emplace<GAME::MeshCollection>(colliderEntity);
 
-                // Add a Transform component 
+                // Add a Transform component
                 auto& transform = registry.emplace<GAME::Transform>(colliderEntity);
 
-                // Set the transform from the level data 
-                if (blenderObj.transformIndex < levelData.levelTransforms.size()) { 
-                    transform.matrix = levelData.levelTransforms[blenderObj.transformIndex]; 
-                } 
-                else { 
-                    GW::MATH::GMatrix::IdentityF(transform.matrix); 
+                // Set the transform from the level data
+                if (blenderObj.transformIndex < levelData.levelTransforms.size()) {
+                    transform.matrix = levelData.levelTransforms[blenderObj.transformIndex];
+                }
+                else {
+                    GW::MATH::GMatrix::IdentityF(transform.matrix);
                 }
 
-                // Set the collider from the level data 
-                if (model.colliderIndex < levelData.levelColliders.size()) { 
-                    meshCollection.collider = levelData.levelColliders[model.colliderIndex]; 
-                    std::cout << "Added collider to obstacle entity from model: " << model.filename << " with collider index: " << model.colliderIndex << std::endl; 
-                } 
-                else { 
-                    // Default collider if not found 
-                    meshCollection.collider = { GW::MATH::GIdentityVectorF, GW::MATH::GIdentityVectorF, GW::MATH::GIdentityQuaternionF  }; 
-                    
-                    registry.emplace<GAME::Collidable>(colliderEntity);
-                    registry.emplace<GAME::Obstacle>(colliderEntity);
-                    auto& meshCollection = registry.emplace<GAME::MeshCollection>(colliderEntity);
-                    auto& transform = registry.emplace<GAME::Transform>(colliderEntity);
-                    std::cout << "Warning: Collider index out of range for model: " << model.filename << std::endl; }
+                // Set the collider from the level data
+                if (model.colliderIndex < levelData.levelColliders.size()) {
+                    meshCollection.collider = levelData.levelColliders[model.colliderIndex];
+                    std::cout << "Added collider to obstacle entity from model: " << model.filename
+                        << " with collider index: " << model.colliderIndex << std::endl;
+                }
+                else {
+                    // Default collider if not found
+                    meshCollection.collider = {
+                        GW::MATH::GIdentityVectorF, // center
+                        GW::MATH::GIdentityVectorF, // extent
+                        GW::MATH::GIdentityQuaternionF // orientation
+                    };
+                    std::cout << "Warning: Collider index out of range for model: " << model.filename << std::endl;
+                }
 
                 std::cout << "Created collidable obstacle entity for model: " << model.filename << std::endl;
             }

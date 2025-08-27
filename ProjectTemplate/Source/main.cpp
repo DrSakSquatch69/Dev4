@@ -26,7 +26,7 @@ int main()
 	// initialize the ECS Component Logic
 	CCL::InitializeComponentLogic(registry);
 	GAME::InitializeModelManager(registry);
-
+	GAME::InitializeCollisionSystem(registry);
 
 	// Seed the rand
 	unsigned int time = std::chrono::steady_clock::now().time_since_epoch().count();
