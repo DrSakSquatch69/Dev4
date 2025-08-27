@@ -190,11 +190,8 @@ namespace GAME {
         return worldOBB;
     }
 
-    bool CheckOBBCollision(const GW::MATH::GOBBF& obb1, const GW::MATH::GOBBF& obb2) 
-    {
+    bool CheckOBBCollision(const GW::MATH::GOBBF& obb1, const GW::MATH::GOBBF& obb2) {
         // This is a simplified OBB collision test
-        // In a real implementation, you would use the separating axis theorem
-
         // For now, we'll use a simple distance check between centers
         float distanceX = std::abs(obb1.center.x - obb2.center.x);
         float distanceY = std::abs(obb1.center.y - obb2.center.y);
@@ -206,7 +203,6 @@ namespace GAME {
         float sumExtentZ = obb1.extent.z + obb2.extent.z;
 
         // Check if the OBBs are overlapping in all three axes
-        return (distanceX < sumExtentX && distanceY < sumExtentY && distanceZ < sumExtentZ);
     }
 
     void collision_system_update(entt::registry& registry) 
