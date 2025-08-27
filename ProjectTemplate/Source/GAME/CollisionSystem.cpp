@@ -1,4 +1,6 @@
 #include "CollisionSystem.h"
+#include "ModelManager.h"
+#include <d3d12.h>
 
 namespace GAME {
 
@@ -160,35 +162,36 @@ namespace GAME {
         std::cout << "Collision System initialized" << std::endl;
     }
 
-    GW::MATH::GOBBF TransformOBBToWorldSpace(const GW::MATH::GOBBF& localOBB, const GW::MATH::GMATRIXF& transform) 
+    GW::MATH::GOBBF TransformOBBToWorldSpace(const GW::MATH::GOBBF& localOBB, const GW::MATH::GMATRIXF& transform)
     {
         GW::MATH::GOBBF worldOBB = localOBB;
-
-        // 1. Extract scale from the transform matrix
+        // Scale the extents 
         GW::MATH::GVECTORF scale;
-        GW::MATH::GMatrix::GetScaleF(transform, scale);
 
-        // 2. Scale the extents of the OBB
+        GW::MATH::GMatrix::GetScaleF(transform, scale);
         worldOBB.extent.x *= scale.x;
         worldOBB.extent.y *= scale.y;
         worldOBB.extent.z *= scale.z;
 
-        // 3. Transform the center to world space
+        // Transform the center 
         GW::MATH::GVECTORF worldCenter;
         GW::MATH::GMatrix::VectorXMatrixF(transform, localOBB.center, worldCenter);
         worldOBB.center = worldCenter;
 
-        // 4. Extract rotation from the transform matrix and apply it to the OBB orientation
+        // Update the rotation 
         GW::MATH::GQUATERNIONF transformRotation;
-        GW::MATH::GQuaternion::FromMatrixF(transform, transformRotation);
+        GW::MATH::GMatrix::GetRotationF(transform, transformRotation);
 
-        // 5. Combine the rotations (current OBB rotation * transform rotation)
         GW::MATH::GQUATERNIONF combinedRotation;
-        GW::MATH::GQuaternion::MultiplyF(localOBB.rotation, transformRotation, combinedRotation);
+        combinedRotation.x = localOBB.rotation.w * transformRotation.x + localOBB.rotation.x * transformRotation.w + localOBB.rotation.y * transformRotation.z - localOBB.rotation.z * transformRotation.y;
+        combinedRotation.y = localOBB.rotation.w * transformRotation.y - localOBB.rotation.x * transformRotation.z + localOBB.rotation.y * transformRotation.w + localOBB.rotation.z * transformRotation.x;
+        combinedRotation.z = localOBB.rotation.w * transformRotation.z + localOBB.rotation.x * transformRotation.y - localOBB.rotation.y * transformRotation.x + localOBB.rotation.z * transformRotation.w;
+        combinedRotation.w = localOBB.rotation.w * transformRotation.w - localOBB.rotation.x * transformRotation.x - localOBB.rotation.y * transformRotation.y - localOBB.rotation.z * transformRotation.z;
         worldOBB.rotation = combinedRotation;
 
         return worldOBB;
     }
+
 
     bool CheckOBBCollision(const GW::MATH::GOBBF& obb1, const GW::MATH::GOBBF& obb2) {
         // This is a simplified OBB collision test
@@ -205,42 +208,66 @@ namespace GAME {
         // Check if the OBBs are overlapping in all three axes
     }
 
-    void collision_system_update(entt::registry& registry) 
-    {
-        // Get all entities with Transform, MeshCollection, and Collidable components
+    // System update function that will be connected to the registry
+    void collision_system_update(entt::registry& registry) {
+        // Update collider transforms for all entities with Transform and MeshCollection
         auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
+        for (auto entity : collidableView) {
+            UpdateColliderTransform(registry, entity);
+        }
 
         // Check for collisions between all collidable entities
         for (auto entity1 : collidableView) {
-            auto& transform1 = registry.get<Transform>(entity1);
-            auto& meshCollection1 = registry.get<MeshCollection>(entity1);
-
-            // Transform the first OBB to world space
-            GW::MATH::GOBBF worldOBB1 = TransformOBBToWorldSpace(meshCollection1.collider, transform1.matrix);
-
             for (auto entity2 : collidableView) {
                 // Skip self-collision
                 if (entity1 == entity2) {
                     continue;
                 }
 
+                auto& transform1 = registry.get<Transform>(entity1);
+                auto& meshCollection1 = registry.get<MeshCollection>(entity1);
+
                 auto& transform2 = registry.get<Transform>(entity2);
                 auto& meshCollection2 = registry.get<MeshCollection>(entity2);
 
-                // Transform the second OBB to world space
-                GW::MATH::GOBBF worldOBB2 = TransformOBBToWorldSpace(meshCollection2.collider, transform2.matrix);
+                // Check if the entities are colliding
+                if (CheckCollision(meshCollection1.collider, transform1.matrix,
+                    meshCollection2.collider, transform2.matrix)) {
 
-                // Check if the OBBs are colliding
-                if (CheckOBBCollision(worldOBB1, worldOBB2)) {
-                    // Handle different types of collisions based on entity tags
-                    // ...
+                    // Handle different types of collisions
+
+                    // Bullet-Enemy collision
+                    if (registry.all_of<Bullet>(entity1) && registry.all_of<Enemy>(entity2)) {
+                        HandleBulletEnemyCollision(registry, entity1, entity2);
+                    }
+                    else if (registry.all_of<Enemy>(entity1) && registry.all_of<Bullet>(entity2)) {
+                        HandleBulletEnemyCollision(registry, entity2, entity1);
+                    }
+
+                    // Player-Enemy collision
+                    else if (registry.all_of<Player>(entity1) && registry.all_of<Enemy>(entity2)) {
+                        HandlePlayerEnemyCollision(registry, entity1, entity2);
+                    }
+                    else if (registry.all_of<Enemy>(entity1) && registry.all_of<Player>(entity2)) {
+                        HandlePlayerEnemyCollision(registry, entity2, entity1);
+                    }
+
+                    // Entity-Obstacle collision
+                    else if (registry.all_of<Obstacle>(entity2)) {
+                        HandleEntityObstacleCollision(registry, entity1, entity2);
+                    }
+                    else if (registry.all_of<Obstacle>(entity1)) {
+                        HandleEntityObstacleCollision(registry, entity2, entity1);
+                    }
                 }
             }
         }
     }
+
     // Connect the collision system to the registry
-    CONNECT_COMPONENT_LOGIC() {
+    CONNECT_COMPONENT_LOGIC()
+    {
         // Initialize the collision system
-        InitializeCollisionSystem(registry);
+        GAME::InitializeCollisionSystem(registry);
     }
 }
