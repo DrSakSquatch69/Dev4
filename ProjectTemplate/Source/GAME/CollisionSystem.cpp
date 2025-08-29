@@ -88,6 +88,79 @@ namespace GAME {
         std::cout << "Entity collided with obstacle! Bouncing." << std::endl;
     }
 
+    // System update function that will be connected to the registry
+    void collision_system_update(entt::registry& registry) {
+        // Update collider transforms for all entities with Transform and MeshCollection
+        auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
+        for (auto entity : collidableView) {
+            UpdateColliderTransform(registry, entity);
+        }
+
+        // Check for collisions between all collidable entities
+        for (auto entity1 : collidableView) {
+            for (auto entity2 : collidableView) {
+                // Skip self-collision
+                if (entity1 == entity2) {
+                    continue;
+                }
+
+                auto& transform1 = registry.get<Transform>(entity1);
+                auto& meshCollection1 = registry.get<MeshCollection>(entity1);
+
+                auto& transform2 = registry.get<Transform>(entity2);
+                auto& meshCollection2 = registry.get<MeshCollection>(entity2);
+
+                // Check if the entities are colliding
+                if (CheckCollision(meshCollection1.collider, transform1.matrix,
+                    meshCollection2.collider, transform2.matrix)) {
+
+                    // Handle different types of collisions
+
+                    // Bullet-Enemy collision
+                    if (registry.all_of<Bullet>(entity1) && registry.all_of<Enemy>(entity2)) {
+                        HandleBulletEnemyCollision(registry, entity1, entity2);
+                    }
+                    else if (registry.all_of<Enemy>(entity1) && registry.all_of<Bullet>(entity2)) {
+                        HandleBulletEnemyCollision(registry, entity2, entity1);
+                    }
+
+                    // Player-Enemy collision
+                    else if (registry.all_of<Player>(entity1) && registry.all_of<Enemy>(entity2)) {
+                        HandlePlayerEnemyCollision(registry, entity1, entity2);
+                    }
+                    else if (registry.all_of<Enemy>(entity1) && registry.all_of<Player>(entity2)) {
+                        HandlePlayerEnemyCollision(registry, entity2, entity1);
+                    }
+
+                    // Entity-Obstacle collision
+                    else if (registry.all_of<Obstacle>(entity2)) {
+                        HandleEntityObstacleCollision(registry, entity1, entity2);
+                    }
+                    else if (registry.all_of<Obstacle>(entity1)) {
+                        HandleEntityObstacleCollision(registry, entity2, entity1);
+                    }
+                }
+            }
+        }
+    }
+
+    // Initialize the collision system
+    void InitializeCollisionSystem(entt::registry& registry) {
+        // Create a dummy entity to hold our system
+        entt::entity collisionSystem = registry.create();
+
+        // Add a tag component to identify it as a system
+        struct CollisionSystemTag {};
+        registry.emplace<CollisionSystemTag>(collisionSystem);
+
+        // Connect the system update function to the registry
+        registry.on_update<CollisionSystemTag>().connect<&collision_system_update>();
+
+        // Trigger the system to run by patching the component
+        registry.patch<CollisionSystemTag>(collisionSystem);
+
+        std::cout << "Collision System initialized" << std::endl;
+    }
 
     GW::MATH::GOBBF TransformOBBToWorldSpace(const GW::MATH::GOBBF& localOBB, const GW::MATH::GMATRIXF& transform)
     {
@@ -119,6 +192,7 @@ namespace GAME {
         return worldOBB;
     }
 
+
     bool CheckOBBCollision(const GW::MATH::GOBBF& obb1, const GW::MATH::GOBBF& obb2) {
         // This is a simplified OBB collision test
         // For now, we'll use a simple distance check between centers
@@ -132,7 +206,6 @@ namespace GAME {
         float sumExtentZ = obb1.extent.z + obb2.extent.z;
 
         // Check if the OBBs are overlapping in all three axes
-        return (distanceX < sumExtentX && distanceY < sumExtentY && distanceZ < sumExtentZ);
     }
 
     // System update function that will be connected to the registry
@@ -189,24 +262,6 @@ namespace GAME {
                 }
             }
         }
-    }
-    
-    // Initialize the collision system
-    void InitializeCollisionSystem(entt::registry& registry) {
-        // Create a dummy entity to hold our system
-        entt::entity collisionSystem = registry.create();
-
-        // Add a tag component to identify it as a system
-        struct CollisionSystemTag {};
-        registry.emplace<CollisionSystemTag>(collisionSystem);
-
-        // Connect the system update function to the registry
-        registry.on_update<CollisionSystemTag>().connect<&collision_system_update>();
-
-        // Trigger the system to run by patching the component
-        registry.patch<CollisionSystemTag>(collisionSystem);
-
-        std::cout << "Collision System initialized" << std::endl;
     }
 
     // Connect the collision system to the registry
