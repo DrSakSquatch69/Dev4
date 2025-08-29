@@ -5,9 +5,11 @@
 #include "../UTIL/Utilities.h"
 #include "ModelManager.h"
 #include "GameComponents.h"
+#include "CollisionSystem.h" // Add this include
 
 namespace GAME
 {
+
     // GameManager component to store game state
     struct GameManager {
         float playerSpeed = 5.0f; // Units per second

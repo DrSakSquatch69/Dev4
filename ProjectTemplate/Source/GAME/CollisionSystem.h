@@ -6,9 +6,6 @@
 #include "../UTIL/Utilities.h"
 
 namespace GAME {
-    // Store the collision system entity for later use
-    entt::entity g_collisionSystemEntity = entt::null;
-
     bool CheckCollision(const GW::MATH::GOBBF& obb1, const GW::MATH::GMATRIXF& transform1,
                         const GW::MATH::GOBBF& obb2, const GW::MATH::GMATRIXF& transform2);
 
