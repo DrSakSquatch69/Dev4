@@ -51,6 +51,86 @@ int main()
 	return 0; // now destructors will be called for all components
 }
 
+void SetupWalls(entt::registry& registry)
+{
+	std::cout << "Setting up wall entities for collision..." << std::endl;
+
+	// Find all entities with "Wall" in their model name
+	auto& modelManager = registry.ctx().get<GAME::ModelManager>();
+
+	// Check if the Wall collection exists
+	if (modelManager.collections.find("Wall") != modelManager.collections.end()) {
+		std::cout << "Found Wall collection with " << modelManager.collections["Wall"].size() << " entities" << std::endl;
+
+		// Create wall entities from the Wall model
+		for (int i = 0; i < 4; i++) {
+			entt::entity wallEntity = GAME::CreateGameEntityFromModel(registry, "Wall");
+
+			if (registry.valid(wallEntity)) {
+				// Add the Obstacle tag
+				registry.emplace<GAME::Obstacle>(wallEntity);
+
+				// Add the Collidable tag
+				registry.emplace<GAME::Collidable>(wallEntity);
+
+				// Set up the collider
+				auto& meshCollection = registry.get<GAME::MeshCollection>(wallEntity);
+				meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
+				meshCollection.collider.extent = { 2.0f, 2.0f, 2.0f, 1.0f }; // Larger size for walls
+				meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+				// Position the walls around the play area
+				auto& transform = registry.get<GAME::Transform>(wallEntity);
+				GW::MATH::GVECTORF position = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+				// Position walls at the edges of the play area
+				switch (i) {
+				case 0: // Top wall
+					position.z = 10.0f;
+					break;
+				case 1: // Bottom wall
+					position.z = -10.0f;
+					break;
+				case 2: // Left wall
+					position.x = -10.0f;
+					break;
+				case 3: // Right wall
+					position.x = 10.0f;
+					break;
+				}
+
+				GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, position, transform.matrix);
+				std::cout << "Created wall entity at position: " << position.x << ", " << position.z << std::endl;
+			}
+		}
+	}
+	else {
+		// Find and tag all existing wall-like entities
+		auto allEntities = registry.view<GAME::MeshCollection>();
+
+		for (auto entity : allEntities) {
+			// Skip entities that already have specific tags
+			if (registry.any_of<GAME::Player, GAME::Enemy, GAME::Bullet>(entity)) {
+				continue;
+			}
+
+			// Add Obstacle and Collidable tags
+			registry.emplace<GAME::Obstacle>(entity);
+			registry.emplace<GAME::Collidable>(entity);
+
+			// Set up the collider
+			auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
+			meshCollection.collider.extent = { 2.0f, 2.0f, 2.0f, 1.0f }; // Larger size for walls
+			meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+			std::cout << "Tagged existing entity as wall: " << (int)entity << std::endl;
+		}
+	}
+
+	std::cout << "Wall setup complete" << std::endl;
+}
+
 void CreatePlayer(entt::registry& registry)
 {
 	// Create a player entity from the Turtle model

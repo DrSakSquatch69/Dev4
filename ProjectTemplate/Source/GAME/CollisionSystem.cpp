@@ -76,96 +76,97 @@ namespace GAME {
         // In a real game, we would implement player damage or game over logic here
     }
 
+    // Handle collision between an entity and an obstacle
     void HandleEntityObstacleCollision(entt::registry& registry, entt::entity entityEntity, entt::entity obstacleEntity) {
         // Only handle entities with velocity
         if (!registry.all_of<Velocity>(entityEntity)) {
             return;
         }
-        // Get each component individually to avoid tuple
+
         auto& velocity = registry.get<Velocity>(entityEntity);
         auto& entityTransform = registry.get<Transform>(entityEntity);
         auto& obstacleTransform = registry.get<Transform>(obstacleEntity);
 
-        // Calculate direction from obstacle to entity 
+        // Calculate direction from obstacle to entity
         GW::MATH::GVECTORF direction;
 
-        // Get the translation components from the matrices 
-        GW::MATH::GVECTORF entityPos = { 0.0f, 0.0f, 0.0f, 1.0f }; 
+        // Get the translation components from the matrices
+        GW::MATH::GVECTORF entityPos = { 0.0f, 0.0f, 0.0f, 1.0f };
         GW::MATH::GVECTORF obstaclePos = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-        // Extract the translation from the matrices 
-        GW::MATH::GMatrix::GetTranslationF(entityTransform.matrix, entityPos); 
+        // Extract the translation from the matrices
+        GW::MATH::GMatrix::GetTranslationF(entityTransform.matrix, entityPos);
         GW::MATH::GMatrix::GetTranslationF(obstacleTransform.matrix, obstaclePos);
 
-        // Calculate direction vector 
-        direction.x = entityPos.x - obstaclePos.x; 
+        // Calculate direction vector
+        direction.x = entityPos.x - obstaclePos.x;
         direction.z = entityPos.z - obstaclePos.z;
 
-        // Normalize the direction 
-        float length = std::sqrt(direction.x * direction.x + direction.z * direction.z); 
-        if (length > 0.0f) { 
-            direction.x /= length; 
-            direction.z /= length; 
-        } else { 
-            // If we can't determine a direction, just reverse the velocity 
-            direction.x = -velocity.direction.x; 
-            direction.z = -velocity.direction.z; 
+        // Normalize the direction
+        float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
+        if (length > 0.0f) {
+            direction.x /= length;
+            direction.z /= length;
+        }
+        else {
+            // If we can't determine a direction, just reverse the velocity
+            direction.x = -velocity.direction.x;
+            direction.z = -velocity.direction.z;
         }
 
-        // Properly bounce the entity by reflecting the velocity vector
+        // FIX: Properly bounce the entity by reflecting the velocity vector
+        // Calculate dot product of velocity direction and normal (direction from obstacle to entity)
         float dotProduct = velocity.direction.x * direction.x + velocity.direction.z * direction.z;
-        velocity.direction.x = velocity.direction.x - 2.0f * dotProduct * direction.x; 
+
+        // Calculate reflection vector: R = V - 2(V·N)N
+        velocity.direction.x = velocity.direction.x - 2.0f * dotProduct * direction.x;
         velocity.direction.z = velocity.direction.z - 2.0f * dotProduct * direction.z;
 
-        // Normalize the new direction 
-        float newLength = std::sqrt(velocity.direction.x * velocity.direction.x + velocity.direction.z * velocity.direction.z); 
-        if (newLength > 0.0f) { 
-            velocity.direction.x /= newLength; 
-            velocity.direction.z /= newLength; 
+        // Normalize the new direction
+        float newLength = std::sqrt(velocity.direction.x * velocity.direction.x + velocity.direction.z * velocity.direction.z);
+        if (newLength > 0.0f) {
+            velocity.direction.x /= newLength;
+            velocity.direction.z /= newLength;
         }
 
-        // Move the entity slightly away from the obstacle to prevent getting stuck 
-        GW::MATH::GVECTORF movement = direction; 
-        movement.x *= 1.0f; // Increased push to prevent sticking 
-        movement.z *= 1.0f; // Increased push to prevent sticking 
+        // Move the entity slightly away from the obstacle to prevent getting stuck
+        GW::MATH::GVECTORF movement = direction;
+        movement.x *= 1.0f; // Increased push to prevent sticking
+        movement.z *= 1.0f;
         GW::MATH::GMatrix::TranslateGlobalF(entityTransform.matrix, movement, entityTransform.matrix);
 
-        std::cout << "Entity collided with obstacle! Bouncing with new direction: " << velocity.direction.x << ", " << velocity.direction.z << std::endl;
+        std::cout << "Entity collided with obstacle! Bouncing with new direction: "
+            << velocity.direction.x << ", " << velocity.direction.z << std::endl;
     }
 
     GW::MATH::GOBBF TransformOBBToWorldSpace(const GW::MATH::GOBBF& localOBB, const GW::MATH::GMATRIXF& transform)
     {
         GW::MATH::GOBBF worldOBB = localOBB;
+
+        // FIX: Extract translation directly from the transform matrix
+        GW::MATH::GVECTORF translation;
+        GW::MATH::GMatrix::GetTranslationF(transform, translation);
+
+        // Set the center to the translation (position) from the transform
+        worldOBB.center = translation;
+
         // Scale the extents 
         GW::MATH::GVECTORF scale;
-
         GW::MATH::GMatrix::GetScaleF(transform, scale);
         worldOBB.extent.x *= scale.x;
         worldOBB.extent.y *= scale.y;
         worldOBB.extent.z *= scale.z;
 
-        // Transform the center 
-        GW::MATH::GVECTORF worldCenter;
-        GW::MATH::GMatrix::VectorXMatrixF(transform, localOBB.center, worldCenter);
-        worldOBB.center = worldCenter;
-
         // Update the rotation 
         GW::MATH::GQUATERNIONF transformRotation;
         GW::MATH::GMatrix::GetRotationF(transform, transformRotation);
-
-        GW::MATH::GQUATERNIONF combinedRotation;
-        combinedRotation.x = localOBB.rotation.w * transformRotation.x + localOBB.rotation.x * transformRotation.w + localOBB.rotation.y * transformRotation.z - localOBB.rotation.z * transformRotation.y;
-        combinedRotation.y = localOBB.rotation.w * transformRotation.y - localOBB.rotation.x * transformRotation.z + localOBB.rotation.y * transformRotation.w + localOBB.rotation.z * transformRotation.x;
-        combinedRotation.z = localOBB.rotation.w * transformRotation.z + localOBB.rotation.x * transformRotation.y - localOBB.rotation.y * transformRotation.x + localOBB.rotation.z * transformRotation.w;
-        combinedRotation.w = localOBB.rotation.w * transformRotation.w - localOBB.rotation.x * transformRotation.x - localOBB.rotation.y * transformRotation.y - localOBB.rotation.z * transformRotation.z;
-        worldOBB.rotation = combinedRotation;
+        worldOBB.rotation = transformRotation;
 
         return worldOBB;
     }
 
     bool CheckOBBCollision(const GW::MATH::GOBBF& obb1, const GW::MATH::GOBBF& obb2) {
-        // This is a simplified OBB collision test
-        // For now, we'll use a simple distance check between centers
+        // FIX: Improved collision detection with debug output
         float distanceX = std::abs(obb1.center.x - obb2.center.x);
         float distanceY = std::abs(obb1.center.y - obb2.center.y);
         float distanceZ = std::abs(obb1.center.z - obb2.center.z);
@@ -174,6 +175,13 @@ namespace GAME {
         float sumExtentX = obb1.extent.x + obb2.extent.x;
         float sumExtentY = obb1.extent.y + obb2.extent.y;
         float sumExtentZ = obb1.extent.z + obb2.extent.z;
+
+        // Debug output for close calls
+        if (distanceX < sumExtentX * 1.2f && distanceY < sumExtentY * 1.2f && distanceZ < sumExtentZ * 1.2f) {
+            std::cout << "Close to collision: "
+                << "Distance: (" << distanceX << ", " << distanceY << ", " << distanceZ << ") "
+                << "Extents: (" << sumExtentX << ", " << sumExtentY << ", " << sumExtentZ << ")" << std::endl;
+        }
 
         // Check if the OBBs are overlapping in all three axes
         return (distanceX < sumExtentX && distanceY < sumExtentY && distanceZ < sumExtentZ);
@@ -196,6 +204,22 @@ namespace GAME {
 
         // Get all entities with the Collidable tag
         auto collidableView = registry.view<Collidable, Transform, MeshCollection>();
+
+        // Debug output for collidable entities
+        if (frameCount % 60 == 0) {
+            std::cout << "Number of collidable entities: " << collidableView.size_hint() << std::endl;
+
+            // Print entity types
+            for (auto entity : collidableView) {
+                std::string entityType = "Unknown";
+                if (registry.all_of<Player>(entity)) entityType = "Player";
+                else if (registry.all_of<Enemy>(entity)) entityType = "Enemy";
+                else if (registry.all_of<Bullet>(entity)) entityType = "Bullet";
+                else if (registry.all_of<Obstacle>(entity)) entityType = "Obstacle";
+
+                std::cout << "Collidable entity " << (int)entity << " is of type: " << entityType << std::endl;
+            }
+        }
 
         // Check for collisions between all collidable entities
         for (auto entity1 : collidableView) {
@@ -238,7 +262,21 @@ namespace GAME {
                     processedCollisions.insert(collisionPair);
 
                     // Debug output when collision is detected
-                    std::cout << "Collision detected between entities " << (int)entity1 << " and " << (int)entity2 << std::endl;
+                    std::string entity1Type = "Unknown";
+                    std::string entity2Type = "Unknown";
+
+                    if (registry.all_of<Player>(entity1)) entity1Type = "Player";
+                    else if (registry.all_of<Enemy>(entity1)) entity1Type = "Enemy";
+                    else if (registry.all_of<Bullet>(entity1)) entity1Type = "Bullet";
+                    else if (registry.all_of<Obstacle>(entity1)) entity1Type = "Obstacle";
+
+                    if (registry.all_of<Player>(entity2)) entity2Type = "Player";
+                    else if (registry.all_of<Enemy>(entity2)) entity2Type = "Enemy";
+                    else if (registry.all_of<Bullet>(entity2)) entity2Type = "Bullet";
+                    else if (registry.all_of<Obstacle>(entity2)) entity2Type = "Obstacle";
+
+                    std::cout << "Collision detected between " << entity1Type << " (entity " << (int)entity1
+                        << ") and " << entity2Type << " (entity " << (int)entity2 << ")" << std::endl;
 
                     // Bullet-Enemy collision 
                     if (registry.all_of<Bullet>(entity1) && registry.all_of<Enemy>(entity2)) {
