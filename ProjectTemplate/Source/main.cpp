@@ -67,6 +67,18 @@ void CreatePlayer(entt::registry& registry)
 		GW::MATH::GVECTORF startPosition = { 0.0f, 0.0f, 0.0f };
 		GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, startPosition, transform.matrix);
 
+		// Make sure the MeshCollection has a properly initialized collider
+		auto& meshCollection = registry.get<GAME::MeshCollection>(playerEntity);
+		// Initialize the collider with default values - INCREASED SIZE
+		meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
+		meshCollection.collider.extent = { 1.5f, 1.5f, 1.5f, 1.0f }; // Larger size for better collision
+		meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+		std::cout << "Player collider initialized with size: " << meshCollection.collider.extent.x << std::endl;
+
+		// Add the Collidable tag to the entity
+		registry.emplace<GAME::Collidable>(playerEntity);
+		std::cout << "Player entity created with Collidable tag" << std::endl;
+
 		std::cout << "Player entity created successfully" << std::endl;
 	}
 	else {
@@ -226,70 +238,160 @@ void GameplayBehavior(entt::registry& registry)
 	if (gameManagerEntity == entt::null || !registry.valid(gameManagerEntity))
 	{
 		gameManagerEntity = registry.create();
-		registry.emplace<GAME::GameManager>(gameManagerEntity);
-		std::cout << "GameManager entity created" << std::endl;
+		// Only add the GameManager component if it doesn't already exist
+		if (!registry.all_of<GAME::GameManager>(gameManagerEntity)) {
+			registry.emplace<GAME::GameManager>(gameManagerEntity);
+			std::cout << "GameManager entity created" << std::endl;
+		}
 	}
 
 	// Check if player and enemy entities exist
 	static bool entitiesCreated = false;
 	if (!entitiesCreated)
 	{
-		// Get the config file
-		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
-
-		// Get model names from config with error checking
-		std::string playerModelName = "Turtle"; // Default value
-		std::string enemyModelName = "Cactus";  // Default value
-
 		try {
-			playerModelName = config->at("Player").at("model").as<std::string>();
+			// Get the config file
+			std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
+
+			// Get model names from config with error checking
+			std::string playerModelName = "Turtle"; // Default value
+			std::string enemyModelName = "Cactus";  // Default value
+
+			try {
+				playerModelName = config->at("Player").at("model").as<std::string>();
+			}
+			catch (const std::exception& e) {
+				std::cout << "Player model not found in config, using default: " << e.what() << std::endl;
+				// Keep the default value
+			}
+
+			try {
+				enemyModelName = config->at("Enemy1").at("model").as<std::string>();
+			}
+			catch (const std::exception& e) {
+				std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
+				// Keep the default value
+			}
+
+			// Find the existing player entity instead of creating a new one
+			auto playerView = registry.view<GAME::Player>();
+			entt::entity playerEntity = entt::null;
+
+			if (playerView.begin() != playerView.end()) {
+				playerEntity = *playerView.begin();
+				std::cout << "Found existing player entity" << std::endl;
+
+				// Make sure the MeshCollection has a properly initialized collider
+				if (registry.all_of<GAME::MeshCollection>(playerEntity)) {
+					auto& meshCollection = registry.get<GAME::MeshCollection>(playerEntity);
+					// Initialize the collider with default values - INCREASED SIZE
+					meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
+					meshCollection.collider.extent = { 1.5f, 1.5f, 1.5f, 1.0f }; // Larger size for better collision
+					meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+					std::cout << "Player collider initialized with size: " << meshCollection.collider.extent.x << std::endl;
+				}
+
+				// Only add the Collidable tag if it doesn't already exist
+				if (!registry.all_of<GAME::Collidable>(playerEntity)) {
+					registry.emplace<GAME::Collidable>(playerEntity);
+					std::cout << "Player entity created with Collidable tag" << std::endl;
+				}
+			}
+			else {
+				std::cout << "No player entity found, this shouldn't happen" << std::endl;
+			}
+
+			// Create enemy entity
+			entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
+			if (registry.valid(enemyEntity)) {
+				// Only add the Enemy tag if it doesn't already exist
+				if (!registry.all_of<GAME::Enemy>(enemyEntity)) {
+					registry.emplace<GAME::Enemy>(enemyEntity);
+				}
+
+				// Make sure the MeshCollection has a properly initialized collider
+				if (registry.all_of<GAME::MeshCollection>(enemyEntity)) {
+					auto& meshCollection = registry.get<GAME::MeshCollection>(enemyEntity);
+					// Initialize the collider with default values - INCREASED SIZE
+					meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
+					meshCollection.collider.extent = { 1.5f, 1.5f, 1.5f, 1.0f }; // Larger size for better collision
+					meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+					std::cout << "Enemy collider initialized with size: " << meshCollection.collider.extent.x << std::endl;
+				}
+
+				// Only add the Collidable tag if it doesn't already exist
+				if (!registry.all_of<GAME::Collidable>(enemyEntity)) {
+					registry.emplace<GAME::Collidable>(enemyEntity);
+					std::cout << "Enemy entity created with Collidable tag" << std::endl;
+				}
+
+				// Add a Velocity component to the enemy with an initial direction and speed
+				// Only add if it doesn't already exist
+				if (!registry.all_of<GAME::Velocity>(enemyEntity)) {
+					GW::MATH::GVECTORF enemyDirection = UTIL::GetRandomVelocityVector();
+					float enemySpeed = 3.0f; // Default value
+					try {
+						std::string speedStr = config->at("Enemy1").at("speed").as<std::string>();
+						enemySpeed = std::stof(speedStr);
+					}
+					catch (const std::exception& e) {
+						std::cout << "Enemy speed not found in config, using default: " << e.what() << std::endl;
+					}
+					registry.emplace<GAME::Velocity>(enemyEntity, enemyDirection, enemySpeed);
+
+					std::cout << "Enemy created with random diagonal direction: " << enemyDirection.x << ", "
+						<< enemyDirection.z << " and speed: " << enemySpeed << std::endl;
+				}
+			}
+			else {
+				std::cout << "Failed to create enemy entity" << std::endl;
+			}
+
+			// Set initial visibility
+			auto& gameManager = registry.ctx().get<GAME::GameManager>();
+			if (registry.valid(playerEntity)) {
+				GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
+			}
+			if (registry.valid(enemyEntity)) {
+				GAME::SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
+			}
+
+			// Find and tag all wall entities with Obstacle and Collidable tags
+			auto levelEntities = registry.view<GAME::MeshCollection>(entt::exclude<GAME::Player, GAME::Enemy, GAME::Bullet>);
+			for (auto entity : levelEntities) {
+				try {
+					// Assuming walls are part of the level entities
+					// Only add the Obstacle tag if it doesn't already exist
+					if (!registry.all_of<GAME::Obstacle>(entity)) {
+						registry.emplace<GAME::Obstacle>(entity);
+					}
+
+					// Only add the Collidable tag if it doesn't already exist
+					if (!registry.all_of<GAME::Collidable>(entity)) {
+						registry.emplace<GAME::Collidable>(entity);
+					}
+
+					// Initialize collider for the wall - INCREASED SIZE
+					if (registry.all_of<GAME::MeshCollection>(entity)) {
+						auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
+						// Initialize the collider with default values
+						meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
+						meshCollection.collider.extent = { 2.0f, 2.0f, 2.0f, 1.0f }; // Larger size for walls
+						meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+						std::cout << "Wall collider initialized with size: " << meshCollection.collider.extent.x << std::endl;
+					}
+					std::cout << "Tagged level entity as Obstacle and Collidable: " << (int)entity << std::endl;
+				}
+				catch (const std::exception& e) {
+					std::cout << "Error tagging level entity: " << e.what() << std::endl;
+				}
+			}
+
+			entitiesCreated = true;
 		}
 		catch (const std::exception& e) {
-			std::cout << "Player model not found in config, using default: " << e.what() << std::endl;
-			// Keep the default value
+			std::cout << "Error in GameplayBehavior: " << e.what() << std::endl;
 		}
-
-		try {
-			enemyModelName = config->at("Enemy1").at("model").as<std::string>();
-		}
-		catch (const std::exception& e) {
-			std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
-			// Keep the default value
-		}
-
-		std::cout << "Player model name: " << playerModelName << std::endl;
-		std::cout << "Enemy model name: " << enemyModelName << std::endl;
-
-		// Create player entity
-		entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
-		registry.emplace<GAME::Player>(playerEntity);
-		std::cout << "Player entity created" << std::endl;
-
-		// Create enemy entity
-		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
-		registry.emplace<GAME::Enemy>(enemyEntity);
-		//std::cout << "Enemy entity created" << std::endl;
-
-		// Add a Velocity component to the enemy with an initial direction and speed
-		GW::MATH::GVECTORF enemyDirection = UTIL::GetRandomVelocityVector();
-		float enemySpeed = 3.0f; // Default value
-		try {
-			std::string speedStr = config->at("Enemy1").at("speed").as<std::string>();
-			enemySpeed = std::stof(speedStr);
-		}
-		catch (const std::exception& e) {
-			std::cout << "Enemy speed not found in config, using default: " << e.what() << std::endl;
-		}
-		registry.emplace<GAME::Velocity>(enemyEntity, enemyDirection, enemySpeed);
-
-		std::cout << "Enemy created with random diagonal direction: " << enemyDirection.x << ", "
-			<< enemyDirection.z << " and speed: " << enemySpeed << std::endl;
-		// Set initial visibility
-		auto& gameManager = registry.ctx().get<GAME::GameManager>();
-		GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
-		GAME::SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
-
-		entitiesCreated = true;
 	}
 
 	// Update the GameManager

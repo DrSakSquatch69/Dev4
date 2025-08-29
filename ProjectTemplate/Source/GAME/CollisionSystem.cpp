@@ -1,8 +1,12 @@
 #include "CollisionSystem.h"
 #include "ModelManager.h"
 #include <d3d12.h>
+#include <set>
+#include <utility>
 
 namespace GAME {
+
+    struct CollisionSystemTag {};
 
     // Check if two OBBs are colliding
     bool CheckCollision(const GW::MATH::GOBBF& obb1, const GW::MATH::GMATRIXF& transform1,
@@ -80,86 +84,47 @@ namespace GAME {
         }
 
         auto& velocity = registry.get<Velocity>(entityEntity);
+        auto& entityTransform = registry.get<Transform>(entityEntity);
+        auto& obstacleTransform = registry.get<Transform>(obstacleEntity);
 
-        // Simple bounce: reverse the velocity
-        velocity.direction.x = -velocity.direction.x;
-        velocity.direction.z = -velocity.direction.z;
+        // Calculate direction from obstacle to entity
+        GW::MATH::GVECTORF direction;
 
-        std::cout << "Entity collided with obstacle! Bouncing." << std::endl;
-    }
+        // Get the translation components from the matrices
+        GW::MATH::GVECTORF entityPos = { 0.0f, 0.0f, 0.0f, 1.0f };
+        GW::MATH::GVECTORF obstaclePos = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    // System update function that will be connected to the registry
-    void collision_system_update(entt::registry& registry) {
-        // Update collider transforms for all entities with Transform and MeshCollection
-        auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
-        for (auto entity : collidableView) {
-            UpdateColliderTransform(registry, entity);
+        // Extract the translation from the matrices
+        GW::MATH::GMatrix::GetTranslationF(entityTransform.matrix, entityPos);
+        GW::MATH::GMatrix::GetTranslationF(obstacleTransform.matrix, obstaclePos);
+
+        // Calculate direction vector
+        direction.x = entityPos.x - obstaclePos.x;
+        direction.z = entityPos.z - obstaclePos.z;
+
+        // Normalize the direction
+        float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
+        if (length > 0.0f) {
+            direction.x /= length;
+            direction.z /= length;
+        }
+        else {
+            // If we can't determine a direction, just reverse the velocity
+            direction.x = -velocity.direction.x;
+            direction.z = -velocity.direction.z;
         }
 
-        // Check for collisions between all collidable entities
-        for (auto entity1 : collidableView) {
-            for (auto entity2 : collidableView) {
-                // Skip self-collision
-                if (entity1 == entity2) {
-                    continue;
-                }
+        // Set the velocity direction away from the obstacle
+        velocity.direction = direction;
 
-                auto& transform1 = registry.get<Transform>(entity1);
-                auto& meshCollection1 = registry.get<MeshCollection>(entity1);
+        // Move the entity slightly away from the obstacle to prevent getting stuck
+        GW::MATH::GVECTORF movement = direction;
+        movement.x *= 0.5f; // Increased push to prevent sticking
+        movement.z *= 0.5f;
+        GW::MATH::GMatrix::TranslateGlobalF(entityTransform.matrix, movement, entityTransform.matrix);
 
-                auto& transform2 = registry.get<Transform>(entity2);
-                auto& meshCollection2 = registry.get<MeshCollection>(entity2);
-
-                // Check if the entities are colliding
-                if (CheckCollision(meshCollection1.collider, transform1.matrix,
-                    meshCollection2.collider, transform2.matrix)) {
-
-                    // Handle different types of collisions
-
-                    // Bullet-Enemy collision
-                    if (registry.all_of<Bullet>(entity1) && registry.all_of<Enemy>(entity2)) {
-                        HandleBulletEnemyCollision(registry, entity1, entity2);
-                    }
-                    else if (registry.all_of<Enemy>(entity1) && registry.all_of<Bullet>(entity2)) {
-                        HandleBulletEnemyCollision(registry, entity2, entity1);
-                    }
-
-                    // Player-Enemy collision
-                    else if (registry.all_of<Player>(entity1) && registry.all_of<Enemy>(entity2)) {
-                        HandlePlayerEnemyCollision(registry, entity1, entity2);
-                    }
-                    else if (registry.all_of<Enemy>(entity1) && registry.all_of<Player>(entity2)) {
-                        HandlePlayerEnemyCollision(registry, entity2, entity1);
-                    }
-
-                    // Entity-Obstacle collision
-                    else if (registry.all_of<Obstacle>(entity2)) {
-                        HandleEntityObstacleCollision(registry, entity1, entity2);
-                    }
-                    else if (registry.all_of<Obstacle>(entity1)) {
-                        HandleEntityObstacleCollision(registry, entity2, entity1);
-                    }
-                }
-            }
-        }
-    }
-
-    // Initialize the collision system
-    void InitializeCollisionSystem(entt::registry& registry) {
-        // Create a dummy entity to hold our system
-        entt::entity collisionSystem = registry.create();
-
-        // Add a tag component to identify it as a system
-        struct CollisionSystemTag {};
-        registry.emplace<CollisionSystemTag>(collisionSystem);
-
-        // Connect the system update function to the registry
-        registry.on_update<CollisionSystemTag>().connect<&collision_system_update>();
-
-        // Trigger the system to run by patching the component
-        registry.patch<CollisionSystemTag>(collisionSystem);
-
-        std::cout << "Collision System initialized" << std::endl;
+        std::cout << "Entity collided with obstacle! Bouncing with new direction: "
+            << direction.x << ", " << direction.z << std::endl;
     }
 
     GW::MATH::GOBBF TransformOBBToWorldSpace(const GW::MATH::GOBBF& localOBB, const GW::MATH::GMATRIXF& transform)
@@ -192,7 +157,6 @@ namespace GAME {
         return worldOBB;
     }
 
-
     bool CheckOBBCollision(const GW::MATH::GOBBF& obb1, const GW::MATH::GOBBF& obb2) {
         // This is a simplified OBB collision test
         // For now, we'll use a simple distance check between centers
@@ -206,37 +170,71 @@ namespace GAME {
         float sumExtentZ = obb1.extent.z + obb2.extent.z;
 
         // Check if the OBBs are overlapping in all three axes
+        return (distanceX < sumExtentX && distanceY < sumExtentY && distanceZ < sumExtentZ);
     }
+
+    // Store the collision system entity for later use
+    entt::entity g_collisionSystemEntity = entt::null;
 
     // System update function that will be connected to the registry
     void collision_system_update(entt::registry& registry) {
-        // Update collider transforms for all entities with Transform and MeshCollection
-        auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
-        for (auto entity : collidableView) {
-            UpdateColliderTransform(registry, entity);
+        // Debug output to confirm the collision system is running
+        static int frameCount = 0;
+        if (frameCount % 60 == 0) { // Print every 60 frames to avoid console spam
+            std::cout << "Collision system update running..." << std::endl;
         }
+        frameCount++;
+
+        // Track which entity pairs have already collided in this frame
+        std::set<std::pair<entt::entity, entt::entity>> processedCollisions;
+
+        // Get all entities with the Collidable tag
+        auto collidableView = registry.view<Collidable, Transform, MeshCollection>();
 
         // Check for collisions between all collidable entities
         for (auto entity1 : collidableView) {
+            auto& transform1 = registry.get<Transform>(entity1);
+            auto& meshCollection1 = registry.get<MeshCollection>(entity1);
+
+            // Transform the first OBB to world space
+            GW::MATH::GOBBF worldOBB1 = TransformOBBToWorldSpace(meshCollection1.collider, transform1.matrix);
+
+            // Check for collisions with all other collidable entities
             for (auto entity2 : collidableView) {
                 // Skip self-collision
                 if (entity1 == entity2) {
                     continue;
                 }
 
-                auto& transform1 = registry.get<Transform>(entity1);
-                auto& meshCollection1 = registry.get<MeshCollection>(entity1);
+                // Create a pair of entities (always with the smaller ID first for consistency)
+                std::pair<entt::entity, entt::entity> collisionPair;
+                if (entity1 < entity2) {
+                    collisionPair = std::make_pair(entity1, entity2);
+                }
+                else {
+                    collisionPair = std::make_pair(entity2, entity1);
+                }
+
+                // Check if this collision has already been processed
+                if (processedCollisions.find(collisionPair) != processedCollisions.end()) {
+                    continue; // Skip this collision as it's already been processed
+                }
 
                 auto& transform2 = registry.get<Transform>(entity2);
                 auto& meshCollection2 = registry.get<MeshCollection>(entity2);
 
-                // Check if the entities are colliding
-                if (CheckCollision(meshCollection1.collider, transform1.matrix,
-                    meshCollection2.collider, transform2.matrix)) {
+                // Transform the second OBB to world space
+                GW::MATH::GOBBF worldOBB2 = TransformOBBToWorldSpace(meshCollection2.collider, transform2.matrix);
 
-                    // Handle different types of collisions
+                // Check if the OBBs are colliding
+                if (CheckOBBCollision(worldOBB1, worldOBB2)) {
+                    // Add this collision to the processed set
+                    processedCollisions.insert(collisionPair);
 
-                    // Bullet-Enemy collision
+                    // Debug output when collision is detected
+                    std::cout << "Collision detected between entities " << (int)entity1 << " and " << (int)entity2 << std::endl;
+
+                    // Bullet-Enemy collision 
                     if (registry.all_of<Bullet>(entity1) && registry.all_of<Enemy>(entity2)) {
                         HandleBulletEnemyCollision(registry, entity1, entity2);
                     }
@@ -244,7 +242,7 @@ namespace GAME {
                         HandleBulletEnemyCollision(registry, entity2, entity1);
                     }
 
-                    // Player-Enemy collision
+                    // Player-Enemy collision 
                     else if (registry.all_of<Player>(entity1) && registry.all_of<Enemy>(entity2)) {
                         HandlePlayerEnemyCollision(registry, entity1, entity2);
                     }
@@ -252,7 +250,7 @@ namespace GAME {
                         HandlePlayerEnemyCollision(registry, entity2, entity1);
                     }
 
-                    // Entity-Obstacle collision
+                    // Entity-Obstacle collision 
                     else if (registry.all_of<Obstacle>(entity2)) {
                         HandleEntityObstacleCollision(registry, entity1, entity2);
                     }
@@ -261,6 +259,28 @@ namespace GAME {
                     }
                 }
             }
+        }
+    }
+
+    // Initialize the collision system
+    void InitializeCollisionSystem(entt::registry& registry) {
+        // Create a dummy entity to hold our system
+        g_collisionSystemEntity = registry.create();
+
+        // Add a tag component to identify it as a system
+        registry.emplace<CollisionSystemTag>(g_collisionSystemEntity);
+
+        // Connect the system update function to the registry
+        registry.on_update<CollisionSystemTag>().connect<&collision_system_update>();
+
+        std::cout << "Collision System initialized with entity ID: " << (int)g_collisionSystemEntity << std::endl;
+    }
+
+    // Function to manually update the collision system
+    void UpdateCollisionSystem(entt::registry& registry) {
+        if (g_collisionSystemEntity != entt::null && registry.valid(g_collisionSystemEntity)) {
+            // Trigger the collision system update by patching the component
+            registry.patch<CollisionSystemTag>(g_collisionSystemEntity);
         }
     }
 

@@ -1,8 +1,12 @@
 #include "GameManager.h"
 #include "../CCL.h"
 #include "../UTIL/Utilities.h"
+#include "CollisionSystem.h" // Add this include
 
 namespace GAME {
+
+	// External function declaration for UpdateCollisionSystem
+	extern void UpdateCollisionSystem(entt::registry& registry);
 
 	void InitializeGameManager(entt::registry& registry) {
 		// Create a GameManager in the registry context
@@ -39,6 +43,9 @@ namespace GAME {
 
 		// Update entity transforms based on velocity (new system)
 		UpdateVelocitySystem(registry, deltaTime);
+
+		// Update the collision system - THIS IS THE KEY ADDITION
+		UpdateCollisionSystem(registry);
 
 		// Handle keyboard input for toggling visibility 
 		HandleVisibilityToggleInput(registry);
@@ -141,45 +148,69 @@ namespace GAME {
 		entt::entity gameEntity = registry.create();
 
 		// Add a MeshCollection component
-		registry.emplace<MeshCollection>(gameEntity);
+		auto& meshCollection = registry.emplace<MeshCollection>(gameEntity);
 
 		// Add a Transform component with identity matrix initially
 		auto& transform = registry.emplace<Transform>(gameEntity);
 		GW::MATH::GMatrix::IdentityF(transform.matrix);
 
-		// Get entities from the model collection
-		auto modelEntities = GetEntitiesFromCollection(registry, modelName);
-		std::cout << "Model collection " << modelName << " has " << modelEntities.size() << " entities" << std::endl;
+		// Get the ModelManager
+		auto& modelManager = registry.ctx().get<ModelManager>();
 
-		// For each entity in the model collection
-		for (auto modelEntity : modelEntities) {
-			// Create a new entity for the mesh
-			entt::entity meshEntity = registry.create();
+		// Check if the model collection exists
+		std::cout << "Looking for model collection: " << modelName << std::endl;
+		if (modelManager.collections.find(modelName) != modelManager.collections.end() &&
+			!modelManager.collections[modelName].empty())
+		{
+			std::cout << "Found model collection: " << modelName << std::endl;
 
-			// Copy the GeometryData and GPUInstance components
-			if (registry.all_of<DRAW::GeometryData>(modelEntity)) {
-				auto& geomData = registry.get<DRAW::GeometryData>(modelEntity);
-				registry.emplace<DRAW::GeometryData>(meshEntity, geomData);
-			}
+			// Get the entities from the collection
+			auto& modelEntities = modelManager.collections[modelName];
+			std::cout << "Model collection " << modelName << " has " << modelEntities.size() << " entities" << std::endl;
 
-			if (registry.all_of<DRAW::GPUInstance>(modelEntity)) {
-				auto& gpuInstance = registry.get<DRAW::GPUInstance>(modelEntity);
-				registry.emplace<DRAW::GPUInstance>(meshEntity, gpuInstance);
+			// For each entity in the model collection
+			for (auto modelEntity : modelEntities)
+			{
+				// Create a new entity for the mesh
+				entt::entity meshEntity = registry.create();
 
-				if (modelEntities[0] == modelEntity) {
-					transform.matrix = gpuInstance.transform; // Copy the entire transform
+				// Copy the GeometryData and GPUInstance components
+				if (registry.all_of<DRAW::GeometryData>(modelEntity))
+				{
+					auto& geomData = registry.get<DRAW::GeometryData>(modelEntity);
+					registry.emplace<DRAW::GeometryData>(meshEntity, geomData);
 				}
+
+				if (registry.all_of<DRAW::GPUInstance>(modelEntity))
+				{
+					auto& gpuInstance = registry.get<DRAW::GPUInstance>(modelEntity);
+					registry.emplace<DRAW::GPUInstance>(meshEntity, gpuInstance);
+
+					// Set the transform from the first entity in the collection
+					if (modelEntities[0] == modelEntity)
+					{
+						transform.matrix = gpuInstance.transform;
+					}
+				}
+
+				// Add the mesh entity to the game entity's MeshCollection
+				meshCollection.meshEntities.push_back(meshEntity);
 			}
 
-			// Add the mesh entity to the game entity's MeshCollection
-			auto& meshCollection = registry.get<MeshCollection>(gameEntity);
-			meshCollection.meshEntities.push_back(meshEntity);
+			// Initialize the collider with default values
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
+			meshCollection.collider.extent = { 1.0f, 1.0f, 1.0f, 1.0f };
+			meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+			std::cout << "Game entity created from model: " << modelName << std::endl;
+		}
+		else {
+			std::cout << "Model collection not found: " << modelName << std::endl;
 		}
 
 		return gameEntity;
 	}
 
-	// Toggle visibility of an entity
 	void ToggleEntityVisibility(entt::registry& registry, entt::entity entity) {
 		// Get the mesh collection for this entity
 		if (!registry.all_of<MeshCollection>(entity)) {
@@ -199,7 +230,6 @@ namespace GAME {
 		}
 	}
 
-	// Set visibility of an entity
 	void SetEntityVisibility(entt::registry& registry, entt::entity entity, bool visible) {
 		// Get the mesh collection for this entity
 		if (!registry.all_of<MeshCollection>(entity)) {
@@ -270,38 +300,6 @@ namespace GAME {
 		else if (eKey <= 0.0f) {
 			eKeyPressed = false;
 		}
-	}
-
-	GW::MATH::GOBBF TransformOBBToWorldSpace(const GW::MATH::GOBBF& localOBB, const GW::MATH::GMATRIXF& transform) {
-		GW::MATH::GOBBF worldOBB = localOBB;
-
-		// 1. Extract scale from the transform matrix
-		GW::MATH::GVECTORF scale;
-		GW::MATH::GMatrix::GetScaleF(transform, scale);
-
-		// 2. Scale the extents of the OBB
-		worldOBB.extent.x *= scale.x;
-		worldOBB.extent.y *= scale.y;
-		worldOBB.extent.z *= scale.z;
-
-		// 3. Transform the center to world space
-		GW::MATH::GVECTORF worldCenter;
-		GW::MATH::GMatrix::VectorXMatrixF(transform, localOBB.center, worldCenter);
-		worldOBB.center = worldCenter;
-
-		// 4. Extract rotation from the transform matrix and apply it to the OBB orientation
-		GW::MATH::GQUATERNIONF transformRotation;
-		GW::MATH::GMatrix::GetRotationF(transform, transformRotation);
-
-		// 5. Combine the rotations (current OBB rotation * transform rotation)
-		GW::MATH::GQUATERNIONF combinedRotation;
-		combinedRotation.x = localOBB.rotation.x * transformRotation.w + localOBB.rotation.w * transformRotation.x + localOBB.rotation.y * transformRotation.z - localOBB.rotation.z * transformRotation.y;
-		combinedRotation.y = localOBB.rotation.y * transformRotation.w + localOBB.rotation.w * transformRotation.y + localOBB.rotation.z * transformRotation.x - localOBB.rotation.x * transformRotation.z;
-		combinedRotation.z = localOBB.rotation.z * transformRotation.w + localOBB.rotation.w * transformRotation.z + localOBB.rotation.x * transformRotation.y - localOBB.rotation.y * transformRotation.x;
-		combinedRotation.w = localOBB.rotation.w * transformRotation.w - localOBB.rotation.x * transformRotation.x - localOBB.rotation.y * transformRotation.y - localOBB.rotation.z * transformRotation.z;
-		worldOBB.rotation = combinedRotation;
-
-		return worldOBB;
 	}
 
 	// on_update method for the GameManager component
