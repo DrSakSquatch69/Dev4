@@ -87,9 +87,6 @@ namespace GAME {
         auto& entityTransform = registry.get<Transform>(entityEntity);
         auto& obstacleTransform = registry.get<Transform>(obstacleEntity);
 
-        // Calculate direction from obstacle to entity
-        GW::MATH::GVECTORF direction;
-
         // Get the translation components from the matrices
         GW::MATH::GVECTORF entityPos = { 0.0f, 0.0f, 0.0f, 1.0f };
         GW::MATH::GVECTORF obstaclePos = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -98,29 +95,35 @@ namespace GAME {
         GW::MATH::GMatrix::GetTranslationF(entityTransform.matrix, entityPos);
         GW::MATH::GMatrix::GetTranslationF(obstacleTransform.matrix, obstaclePos);
 
-        // Calculate direction vector
-        direction.x = entityPos.x - obstaclePos.x;
-        direction.z = entityPos.z - obstaclePos.z;
+        // Calculate normal vector from obstacle to entity (this is the collision normal)
+        GW::MATH::GVECTORF normal;
+        normal.x = entityPos.x - obstaclePos.x;
+        normal.z = entityPos.z - obstaclePos.z;
+        normal.y = 0.0f; // We're only concerned with 2D movement in XZ plane
+        normal.w = 0.0f;
 
-        // Normalize the direction
-        float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
+        // Normalize the normal vector
+        float length = std::sqrt(normal.x * normal.x + normal.z * normal.z);
         if (length > 0.0f) {
-            direction.x /= length;
-            direction.z /= length;
+            normal.x /= length;
+            normal.z /= length;
         }
         else {
             // If we can't determine a direction, just reverse the velocity
-            direction.x = -velocity.direction.x;
-            direction.z = -velocity.direction.z;
+            normal.x = -velocity.direction.x;
+            normal.z = -velocity.direction.z;
         }
 
-        // FIX: Properly bounce the entity by reflecting the velocity vector
-        // Calculate dot product of velocity direction and normal (direction from obstacle to entity)
-        float dotProduct = velocity.direction.x * direction.x + velocity.direction.z * direction.z;
+        // Debug output
+        std::cout << "Collision normal: " << normal.x << ", " << normal.z << std::endl;
+        std::cout << "Incoming velocity: " << velocity.direction.x << ", " << velocity.direction.z << std::endl;
+
+        // Calculate dot product of velocity direction and normal
+        float dotProduct = velocity.direction.x * normal.x + velocity.direction.z * normal.z;
 
         // Calculate reflection vector: R = V - 2(V·N)N
-        velocity.direction.x = velocity.direction.x - 2.0f * dotProduct * direction.x;
-        velocity.direction.z = velocity.direction.z - 2.0f * dotProduct * direction.z;
+        velocity.direction.x = velocity.direction.x - 2.0f * dotProduct * normal.x;
+        velocity.direction.z = velocity.direction.z - 2.0f * dotProduct * normal.z;
 
         // Normalize the new direction
         float newLength = std::sqrt(velocity.direction.x * velocity.direction.x + velocity.direction.z * velocity.direction.z);
@@ -130,43 +133,52 @@ namespace GAME {
         }
 
         // Move the entity slightly away from the obstacle to prevent getting stuck
-        GW::MATH::GVECTORF movement = direction;
-        movement.x *= 1.0f; // Increased push to prevent sticking
-        movement.z *= 1.0f;
+        GW::MATH::GVECTORF movement = normal;
+        movement.x *= 1.5f; // Increased push to prevent sticking
+        movement.z *= 1.5f;
+        movement.y = 0.0f;
+        movement.w = 0.0f;
+
         GW::MATH::GMatrix::TranslateGlobalF(entityTransform.matrix, movement, entityTransform.matrix);
 
         std::cout << "Entity collided with obstacle! Bouncing with new direction: "
             << velocity.direction.x << ", " << velocity.direction.z << std::endl;
     }
 
+    // Properly transform OBB to world space
     GW::MATH::GOBBF TransformOBBToWorldSpace(const GW::MATH::GOBBF& localOBB, const GW::MATH::GMATRIXF& transform)
     {
         GW::MATH::GOBBF worldOBB = localOBB;
 
-        // FIX: Extract translation directly from the transform matrix
-        GW::MATH::GVECTORF translation;
-        GW::MATH::GMatrix::GetTranslationF(transform, translation);
+        // Transform the center point to world space
+        GW::MATH::GVECTORF worldCenter = { 0.0f, 0.0f, 0.0f, 1.0f };
+        GW::MATH::GMatrix::VectorXMatrixF(transform, localOBB.center, worldCenter);
+        worldOBB.center = worldCenter;
 
-        // Set the center to the translation (position) from the transform
-        worldOBB.center = translation;
-
-        // Scale the extents 
+        // Extract scale from the transform matrix
         GW::MATH::GVECTORF scale;
         GW::MATH::GMatrix::GetScaleF(transform, scale);
+
+        // Apply scale to the extents
         worldOBB.extent.x *= scale.x;
         worldOBB.extent.y *= scale.y;
         worldOBB.extent.z *= scale.z;
+        worldOBB.extent.w = 1.0f;
 
-        // Update the rotation 
-        GW::MATH::GQUATERNIONF transformRotation;
-        GW::MATH::GMatrix::GetRotationF(transform, transformRotation);
-        worldOBB.rotation = transformRotation;
+        // Extract rotation from the transform matrix
+        GW::MATH::GQUATERNIONF rotation;
+        GW::MATH::GMatrix::GetRotationF(transform, rotation);
+        worldOBB.rotation = rotation;
+
+        // Debug output for transformed OBB
+        std::cout << "Transformed OBB - Center: (" << worldOBB.center.x << ", " << worldOBB.center.y << ", " << worldOBB.center.z
+            << "), Extents: (" << worldOBB.extent.x << ", " << worldOBB.extent.y << ", " << worldOBB.extent.z << ")" << std::endl;
 
         return worldOBB;
     }
 
     bool CheckOBBCollision(const GW::MATH::GOBBF& obb1, const GW::MATH::GOBBF& obb2) {
-        // FIX: Improved collision detection with debug output
+        // Enhanced collision detection with debug output
         float distanceX = std::abs(obb1.center.x - obb2.center.x);
         float distanceY = std::abs(obb1.center.y - obb2.center.y);
         float distanceZ = std::abs(obb1.center.z - obb2.center.z);
@@ -184,7 +196,15 @@ namespace GAME {
         }
 
         // Check if the OBBs are overlapping in all three axes
-        return (distanceX < sumExtentX && distanceY < sumExtentY && distanceZ < sumExtentZ);
+        bool collision = (distanceX < sumExtentX && distanceY < sumExtentY && distanceZ < sumExtentZ);
+
+        if (collision) {
+            std::cout << "COLLISION DETECTED: "
+                << "Distance: (" << distanceX << ", " << distanceY << ", " << distanceZ << ") "
+                << "Extents: (" << sumExtentX << ", " << sumExtentY << ", " << sumExtentZ << ")" << std::endl;
+        }
+
+        return collision;
     }
 
     // Store the collision system entity for later use
@@ -218,6 +238,23 @@ namespace GAME {
                 else if (registry.all_of<Obstacle>(entity)) entityType = "Obstacle";
 
                 std::cout << "Collidable entity " << (int)entity << " is of type: " << entityType << std::endl;
+
+                // Print entity position
+                if (registry.all_of<Transform>(entity)) {
+                    auto& transform = registry.get<Transform>(entity);
+                    GW::MATH::GVECTORF position;
+                    GW::MATH::GMatrix::GetTranslationF(transform.matrix, position);
+                    std::cout << "  Position: (" << position.x << ", " << position.y << ", " << position.z << ")" << std::endl;
+                }
+
+                // Print collider information
+                if (registry.all_of<MeshCollection>(entity)) {
+                    auto& meshCollection = registry.get<MeshCollection>(entity);
+                    std::cout << "  Collider Center: (" << meshCollection.collider.center.x << ", "
+                        << meshCollection.collider.center.y << ", " << meshCollection.collider.center.z << ")" << std::endl;
+                    std::cout << "  Collider Extent: (" << meshCollection.collider.extent.x << ", "
+                        << meshCollection.collider.extent.y << ", " << meshCollection.collider.extent.z << ")" << std::endl;
+                }
             }
         }
 

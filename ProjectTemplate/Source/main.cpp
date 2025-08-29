@@ -11,12 +11,14 @@
 #include "GAME/Player.h"
 #include "GAME/CollisionSystem.h"
 #include "GAME/CollisionHelper.h"
+#include "GAME/GameManager.cpp"
 
 // Local routines for specific application behavior
 void GraphicsBehavior(entt::registry& registry);
 void GameplayBehavior(entt::registry& registry);
 void MainLoopBehavior(entt::registry& registry);
 void CreatePlayer(entt::registry& registry);
+void SetupWalls(entt::registry& registry);
 
 // Architecture is based on components/entities pushing updates to other components/entities (via "patch" function)
 int main()
@@ -190,6 +192,9 @@ void GraphicsBehavior(entt::registry& registry)
 	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{ LevelFile, ModelPath });
 	GAME::InitializeGameManager(registry);
 	CreatePlayer(registry);
+
+	// Call SetupWalls to properly create and position wall entities
+	SetupWalls(registry);
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
@@ -492,6 +497,9 @@ void GameplayBehavior(entt::registry& registry)
 
 	// Update the GameManager
 	GAME::UpdateGameManager(registry, deltaTime);
+
+	// Explicitly update the collision system every frame
+	GAME::UpdateCollisionSystem(registry);
 }
 
 // This function will be called by the main loop to update the main loop
@@ -521,6 +529,9 @@ void MainLoopBehavior(entt::registry& registry)
 		for (auto entity : gameManagerView) {
 			registry.patch<GAME::GameManager>(entity); // Update the GameManager
 		}
+
+		// Explicitly update the collision system every frame
+		GAME::UpdateCollisionSystem(registry);
 
 		closedCount = 0;
 		// find all Windows that are not closed and call "patch" to update them
