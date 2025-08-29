@@ -76,11 +76,6 @@ namespace GAME {
         // In a real game, we would implement player damage or game over logic here
     }
 
-    // Pseudocode plan:
-    // 1. The error "std::tuple<> has no member 'direction'" means that a variable expected to be a Velocity component is actually a tuple (likely from entt::registry.get returning multiple components).
-    // 2. Find the code where registry.get is called and ensure it only retrieves the Velocity component, not a tuple.
-    // 3. Fix the line in HandleEntityObstacleCollision to get Velocity, Transform, and Obstacle Transform separately.
-
     void HandleEntityObstacleCollision(entt::registry& registry, entt::entity entityEntity, entt::entity obstacleEntity) {
         // Only handle entities with velocity
         if (!registry.all_of<Velocity>(entityEntity)) {

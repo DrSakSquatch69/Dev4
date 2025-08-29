@@ -76,7 +76,10 @@ void CreatePlayer(entt::registry& registry)
 		std::cout << "Player collider initialized with size: " << meshCollection.collider.extent.x << std::endl;
 
 		// Add the Collidable tag to the entity
-		registry.emplace<GAME::Collidable>(playerEntity);
+		if (!registry.all_of<GAME::Collidable>(playerEntity)) {
+			registry.emplace<GAME::Collidable>(playerEntity);
+			std::cout << "Player entity created with Collidable tag" << std::endl;
+		}
 		if (registry.ctx().contains<GAME::GameManager>()) {
 			auto& gameManager = registry.ctx().get<GAME::GameManager>();
 			GAME::SetEntityVisibility(registry, playerEntity, true);
