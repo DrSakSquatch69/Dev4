@@ -77,9 +77,11 @@ void CreatePlayer(entt::registry& registry)
 
 		// Add the Collidable tag to the entity
 		registry.emplace<GAME::Collidable>(playerEntity);
-		auto& gameManager = registry.ctx().get<GAME::GameManager>();
-		GAME::SetEntityVisibility(registry, playerEntity, true);
-		gameManager.playerVisible = true;
+		if (registry.ctx().contains<GAME::GameManager>()) {
+			auto& gameManager = registry.ctx().get<GAME::GameManager>();
+			GAME::SetEntityVisibility(registry, playerEntity, true);
+			gameManager.playerVisible = true;
+		}
 		std::cout << "Player entity created with Collidable tag" << std::endl;
 
 		std::cout << "Player entity created successfully" << std::endl;
