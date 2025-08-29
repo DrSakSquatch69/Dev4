@@ -76,55 +76,66 @@ namespace GAME {
         // In a real game, we would implement player damage or game over logic here
     }
 
-    // Handle collision between an entity and an obstacle
+    // Pseudocode plan:
+    // 1. The error "std::tuple<> has no member 'direction'" means that a variable expected to be a Velocity component is actually a tuple (likely from entt::registry.get returning multiple components).
+    // 2. Find the code where registry.get is called and ensure it only retrieves the Velocity component, not a tuple.
+    // 3. Fix the line in HandleEntityObstacleCollision to get Velocity, Transform, and Obstacle Transform separately.
+
     void HandleEntityObstacleCollision(entt::registry& registry, entt::entity entityEntity, entt::entity obstacleEntity) {
         // Only handle entities with velocity
         if (!registry.all_of<Velocity>(entityEntity)) {
             return;
         }
-
+        // Get each component individually to avoid tuple
         auto& velocity = registry.get<Velocity>(entityEntity);
         auto& entityTransform = registry.get<Transform>(entityEntity);
         auto& obstacleTransform = registry.get<Transform>(obstacleEntity);
 
-        // Calculate direction from obstacle to entity
+        // Calculate direction from obstacle to entity 
         GW::MATH::GVECTORF direction;
 
-        // Get the translation components from the matrices
-        GW::MATH::GVECTORF entityPos = { 0.0f, 0.0f, 0.0f, 1.0f };
+        // Get the translation components from the matrices 
+        GW::MATH::GVECTORF entityPos = { 0.0f, 0.0f, 0.0f, 1.0f }; 
         GW::MATH::GVECTORF obstaclePos = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-        // Extract the translation from the matrices
-        GW::MATH::GMatrix::GetTranslationF(entityTransform.matrix, entityPos);
+        // Extract the translation from the matrices 
+        GW::MATH::GMatrix::GetTranslationF(entityTransform.matrix, entityPos); 
         GW::MATH::GMatrix::GetTranslationF(obstacleTransform.matrix, obstaclePos);
 
-        // Calculate direction vector
-        direction.x = entityPos.x - obstaclePos.x;
+        // Calculate direction vector 
+        direction.x = entityPos.x - obstaclePos.x; 
         direction.z = entityPos.z - obstaclePos.z;
 
-        // Normalize the direction
-        float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
-        if (length > 0.0f) {
-            direction.x /= length;
-            direction.z /= length;
-        }
-        else {
-            // If we can't determine a direction, just reverse the velocity
-            direction.x = -velocity.direction.x;
-            direction.z = -velocity.direction.z;
+        // Normalize the direction 
+        float length = std::sqrt(direction.x * direction.x + direction.z * direction.z); 
+        if (length > 0.0f) { 
+            direction.x /= length; 
+            direction.z /= length; 
+        } else { 
+            // If we can't determine a direction, just reverse the velocity 
+            direction.x = -velocity.direction.x; 
+            direction.z = -velocity.direction.z; 
         }
 
-        // Set the velocity direction away from the obstacle
-        velocity.direction = direction;
+        // Properly bounce the entity by reflecting the velocity vector
+        float dotProduct = velocity.direction.x * direction.x + velocity.direction.z * direction.z;
+        velocity.direction.x = velocity.direction.x - 2.0f * dotProduct * direction.x; 
+        velocity.direction.z = velocity.direction.z - 2.0f * dotProduct * direction.z;
 
-        // Move the entity slightly away from the obstacle to prevent getting stuck
-        GW::MATH::GVECTORF movement = direction;
-        movement.x *= 0.5f; // Increased push to prevent sticking
-        movement.z *= 0.5f;
+        // Normalize the new direction 
+        float newLength = std::sqrt(velocity.direction.x * velocity.direction.x + velocity.direction.z * velocity.direction.z); 
+        if (newLength > 0.0f) { 
+            velocity.direction.x /= newLength; 
+            velocity.direction.z /= newLength; 
+        }
+
+        // Move the entity slightly away from the obstacle to prevent getting stuck 
+        GW::MATH::GVECTORF movement = direction; 
+        movement.x *= 1.0f; // Increased push to prevent sticking 
+        movement.z *= 1.0f; // Increased push to prevent sticking 
         GW::MATH::GMatrix::TranslateGlobalF(entityTransform.matrix, movement, entityTransform.matrix);
 
-        std::cout << "Entity collided with obstacle! Bouncing with new direction: "
-            << direction.x << ", " << direction.z << std::endl;
+        std::cout << "Entity collided with obstacle! Bouncing with new direction: " << velocity.direction.x << ", " << velocity.direction.z << std::endl;
     }
 
     GW::MATH::GOBBF TransformOBBToWorldSpace(const GW::MATH::GOBBF& localOBB, const GW::MATH::GMATRIXF& transform)

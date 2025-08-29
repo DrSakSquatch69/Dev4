@@ -279,11 +279,11 @@ void GameplayBehavior(entt::registry& registry)
 			// Find the existing player entity instead of creating a new one
 			auto playerView = registry.view<GAME::Player>();
 			entt::entity playerEntity = entt::null;
-			GAME::SetEntityVisibility(registry, playerEntity, true);
+
 			if (playerView.begin() != playerView.end()) {
 				playerEntity = *playerView.begin();
 				std::cout << "Found existing player entity" << std::endl;
-				
+
 				// Make sure the MeshCollection has a properly initialized collider
 				if (registry.all_of<GAME::MeshCollection>(playerEntity)) {
 					auto& meshCollection = registry.get<GAME::MeshCollection>(playerEntity);
@@ -299,9 +299,17 @@ void GameplayBehavior(entt::registry& registry)
 					registry.emplace<GAME::Collidable>(playerEntity);
 					std::cout << "Player entity created with Collidable tag" << std::endl;
 				}
+
+				// FIX: Ensure player is visible
+				GAME::SetEntityVisibility(registry, playerEntity, true);
+				auto& gameManager = registry.ctx().get<GAME::GameManager>();
+				gameManager.playerVisible = true;
+				std::cout << "Player visibility set to true" << std::endl;
 			}
 			else {
-				std::cout << "No player entity found, this shouldn't happen" << std::endl;
+				std::cout << "No player entity found, creating one now" << std::endl;
+				// FIX: Create player if not found
+				CreatePlayer(registry);
 			}
 
 			// Create enemy entity
