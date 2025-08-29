@@ -170,10 +170,6 @@ namespace GAME {
         GW::MATH::GMatrix::GetRotationF(transform, rotation);
         worldOBB.rotation = rotation;
 
-        // Debug output for transformed OBB
-        std::cout << "Transformed OBB - Center: (" << worldOBB.center.x << ", " << worldOBB.center.y << ", " << worldOBB.center.z
-            << "), Extents: (" << worldOBB.extent.x << ", " << worldOBB.extent.y << ", " << worldOBB.extent.z << ")" << std::endl;
-
         return worldOBB;
     }
 
