@@ -203,9 +203,6 @@ namespace GAME {
         return collision;
     }
 
-    // Store the collision system entity for later use
-    entt::entity g_collisionSystemEntity = entt::null;
-
     // System update function that will be connected to the registry
     void collision_system_update(entt::registry& registry) {
         // Debug output to confirm the collision system is running
