@@ -133,7 +133,11 @@ namespace GAME {
 	std::map<std::string, std::vector<entt::entity>> modelCollections;
 
 	void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName) {
-		modelCollections[collectionName].push_back(entity);
+		// Get the ModelManager from the registry context
+		auto& modelManager = registry.ctx().get<ModelManager>();
+
+		// Add the entity to the collection
+		modelManager.collections[collectionName].push_back(entity);
 	}
 
 	std::vector<entt::entity> GetEntitiesFromCollection(entt::registry& registry, const std::string& collectionName) {

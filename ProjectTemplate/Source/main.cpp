@@ -77,6 +77,9 @@ void CreatePlayer(entt::registry& registry)
 
 		// Add the Collidable tag to the entity
 		registry.emplace<GAME::Collidable>(playerEntity);
+		auto& gameManager = registry.ctx().get<GAME::GameManager>();
+		GAME::SetEntityVisibility(registry, playerEntity, true);
+		gameManager.playerVisible = true;
 		std::cout << "Player entity created with Collidable tag" << std::endl;
 
 		std::cout << "Player entity created successfully" << std::endl;
@@ -100,7 +103,7 @@ void GraphicsBehavior(entt::registry& registry)
 
 	// TODO: Emplace CPULevel. Placing here to reduce occurrence of a json race condition crash
 	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{ LevelFile, ModelPath });
-
+	GAME::InitializeGameManager(registry);
 	CreatePlayer(registry);
 
 	// Emplace and initialize Window component
@@ -276,11 +279,11 @@ void GameplayBehavior(entt::registry& registry)
 			// Find the existing player entity instead of creating a new one
 			auto playerView = registry.view<GAME::Player>();
 			entt::entity playerEntity = entt::null;
-
+			GAME::SetEntityVisibility(registry, playerEntity, true);
 			if (playerView.begin() != playerView.end()) {
 				playerEntity = *playerView.begin();
 				std::cout << "Found existing player entity" << std::endl;
-
+				
 				// Make sure the MeshCollection has a properly initialized collider
 				if (registry.all_of<GAME::MeshCollection>(playerEntity)) {
 					auto& meshCollection = registry.get<GAME::MeshCollection>(playerEntity);
