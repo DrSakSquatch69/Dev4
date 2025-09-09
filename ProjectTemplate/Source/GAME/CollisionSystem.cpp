@@ -190,7 +190,12 @@ namespace GAME {
 
         // Calculate dot product of velocity direction and normal
         float dotProduct = velocity.direction.x * normal.x + velocity.direction.z * normal.z;
-
+        if(dotProduct > 0) {
+            // If dot product is positive, we need to invert the normal
+            normal.x = -normal.x;
+            normal.z = -normal.z;
+            dotProduct = -dotProduct; // Recalculate dot product with inverted normal
+        }
         // Calculate reflection vector: R = V - 2(V·N)N
         velocity.direction.x = velocity.direction.x - 2.0f * dotProduct * normal.x;
         velocity.direction.z = velocity.direction.z - 2.0f * dotProduct * normal.z;
