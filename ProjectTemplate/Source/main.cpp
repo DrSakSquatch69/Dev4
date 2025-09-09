@@ -140,7 +140,7 @@ void SetupWalls(entt::registry& registry)
 			// Set up the collider with MUCH LARGER size
 			auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
 			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-			meshCollection.collider.extent = { 10.0f, 5.0f, 10.0f, 1.0f }; // Much larger size for walls
+			meshCollection.collider.extent = { 20.0f, 5.0f, 5.0f, 1.0f }; // Much larger size for walls
 			meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 			std::cout << "Tagged existing entity as wall: " << (int)entity << std::endl;
@@ -429,7 +429,7 @@ void GameplayBehavior(entt::registry& registry)
 					auto& meshCollection = registry.get<GAME::MeshCollection>(enemyEntity);
 					// Initialize the collider with default values - INCREASED SIZE
 					meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-					meshCollection.collider.extent = { 1.5f, 1.5f, 1.5f, 1.0f }; // Larger size for better collision
+					meshCollection.collider.extent = { 2.0f, 2.0f, 2.0f, 1.0f }; // Larger size for better collision
 					meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 					std::cout << "Enemy collider initialized with size: " << meshCollection.collider.extent.x << std::endl;
 				}

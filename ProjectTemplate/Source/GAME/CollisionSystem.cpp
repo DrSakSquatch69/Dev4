@@ -144,8 +144,12 @@ namespace GAME {
         if (!registry.all_of<Velocity>(entityEntity)) {
             return;
         }
-
         auto& velocity = registry.get<Velocity>(entityEntity);
+        float speed = velocity.speed;
+        float pushFactor = 2.0f;
+        if (speed > 5.0f) {
+            pushFactor = speed / 2.5f; // Scale push factor with speed
+        }
         auto& entityTransform = registry.get<Transform>(entityEntity);
         auto& obstacleTransform = registry.get<Transform>(obstacleEntity);
 
@@ -226,8 +230,25 @@ namespace GAME {
     void collision_system_update(entt::registry& registry) {
         // Debug output to confirm the collision system is running
         static int frameCount = 0;
-        if (frameCount % 60 == 0) { // Print every 60 frames to avoid console spam
-            std::cout << "Collision system update running..." << std::endl;
+        if (frameCount % 60 == 0) { // Only update every 60 frames to reduce spam
+            auto collidableView = registry.view<Collidable, Transform, MeshCollection>();
+            for (auto entity : collidableView) {
+                auto& transform = registry.get<Transform>(entity);
+                auto& meshCollection = registry.get<MeshCollection>(entity);
+
+                // Transform the OBB to world space
+                GW::MATH::GOBBF worldOBB = TransformOBBToWorldSpace(meshCollection.collider, transform.matrix);
+
+                std::string entityType = "Unknown";
+                if (registry.all_of<Player>(entity)) entityType = "Player";
+                else if (registry.all_of<Enemy>(entity)) entityType = "Enemy";
+                else if (registry.all_of<Bullet>(entity)) entityType = "Bullet";
+                else if (registry.all_of<Obstacle>(entity)) entityType = "Obstacle";
+
+                std::cout << "Entity " << (int)entity << " (" << entityType << ") collider: "
+                    << "Center=(" << worldOBB.center.x << ", " << worldOBB.center.y << ", " << worldOBB.center.z << "), "
+                    << "Extent=(" << worldOBB.extent.x << ", " << worldOBB.extent.y << ", " << worldOBB.extent.z << ")" << std::endl;
+            }
         }
         frameCount++;
 
