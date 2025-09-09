@@ -74,34 +74,52 @@ void SetupWalls(entt::registry& registry)
 				// Add the Collidable tag
 				registry.emplace<GAME::Collidable>(wallEntity);
 
-				// Set up the collider
+				// Set up the collider with MUCH LARGER size
 				auto& meshCollection = registry.get<GAME::MeshCollection>(wallEntity);
 				meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-				meshCollection.collider.extent = { 2.0f, 2.0f, 2.0f, 1.0f }; // Larger size for walls
+				meshCollection.collider.extent = { 20.0f, 5.0f, 5.0f, 1.0f }; // Much larger size for walls
 				meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 				// Position the walls around the play area
 				auto& transform = registry.get<GAME::Transform>(wallEntity);
 				GW::MATH::GVECTORF position = { 0.0f, 0.0f, 0.0f, 1.0f };
+				GW::MATH::GVECTORF rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-				// Position walls at the edges of the play area
+				// Position and rotate walls at the edges of the play area
 				switch (i) {
 				case 0: // Top wall
-					position.z = 10.0f;
+					position.z = 15.0f; // Further out
 					break;
 				case 1: // Bottom wall
-					position.z = -10.0f;
+					position.z = -15.0f; // Further out
 					break;
 				case 2: // Left wall
-					position.x = -10.0f;
+					position.x = -15.0f; // Further out
+					rotation.y = 90.0f * 3.14159f / 180.0f; // Rotate 90 degrees
 					break;
 				case 3: // Right wall
-					position.x = 10.0f;
+					position.x = 15.0f; // Further out
+					rotation.y = 90.0f * 3.14159f / 180.0f; // Rotate 90 degrees
 					break;
 				}
 
+				// Apply rotation if needed
+				if (rotation.y != 0.0f) {
+					GW::MATH::GMATRIXF rotMatrix;
+					GW::MATH::GMatrix::IdentityF(rotMatrix);
+					GW::MATH::GMatrix::RotationYawPitchRollF(rotation.y, rotation.x, rotation.z, rotMatrix);
+					GW::MATH::GMatrix::MultiplyMatrixF(transform.matrix, rotMatrix, transform.matrix);
+
+					// For walls on the sides, swap the extents
+					meshCollection.collider.extent = { 5.0f, 5.0f, 20.0f, 1.0f };
+				}
+
+				// Apply translation
 				GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, position, transform.matrix);
-				std::cout << "Created wall entity at position: " << position.x << ", " << position.z << std::endl;
+
+				std::cout << "Created wall entity at position: " << position.x << ", " << position.z
+					<< " with extents: " << meshCollection.collider.extent.x << ", "
+					<< meshCollection.collider.extent.y << ", " << meshCollection.collider.extent.z << std::endl;
 			}
 		}
 	}
@@ -119,10 +137,10 @@ void SetupWalls(entt::registry& registry)
 			registry.emplace<GAME::Obstacle>(entity);
 			registry.emplace<GAME::Collidable>(entity);
 
-			// Set up the collider
+			// Set up the collider with MUCH LARGER size
 			auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
 			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-			meshCollection.collider.extent = { 2.0f, 2.0f, 2.0f, 1.0f }; // Larger size for walls
+			meshCollection.collider.extent = { 10.0f, 5.0f, 10.0f, 1.0f }; // Much larger size for walls
 			meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 			std::cout << "Tagged existing entity as wall: " << (int)entity << std::endl;

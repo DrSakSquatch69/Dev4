@@ -76,76 +76,6 @@ namespace GAME {
         // In a real game, we would implement player damage or game over logic here
     }
 
-    // Handle collision between an entity and an obstacle
-    void HandleEntityObstacleCollision(entt::registry& registry, entt::entity entityEntity, entt::entity obstacleEntity) {
-        // Only handle entities with velocity
-        if (!registry.all_of<Velocity>(entityEntity)) {
-            return;
-        }
-
-        auto& velocity = registry.get<Velocity>(entityEntity);
-        auto& entityTransform = registry.get<Transform>(entityEntity);
-        auto& obstacleTransform = registry.get<Transform>(obstacleEntity);
-
-        // Get the translation components from the matrices
-        GW::MATH::GVECTORF entityPos = { 0.0f, 0.0f, 0.0f, 1.0f };
-        GW::MATH::GVECTORF obstaclePos = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-        // Extract the translation from the matrices
-        GW::MATH::GMatrix::GetTranslationF(entityTransform.matrix, entityPos);
-        GW::MATH::GMatrix::GetTranslationF(obstacleTransform.matrix, obstaclePos);
-
-        // Calculate normal vector from obstacle to entity (this is the collision normal)
-        GW::MATH::GVECTORF normal;
-        normal.x = entityPos.x - obstaclePos.x;
-        normal.z = entityPos.z - obstaclePos.z;
-        normal.y = 0.0f; // We're only concerned with 2D movement in XZ plane
-        normal.w = 0.0f;
-
-        // Normalize the normal vector
-        float length = std::sqrt(normal.x * normal.x + normal.z * normal.z);
-        if (length > 0.0f) {
-            normal.x /= length;
-            normal.z /= length;
-        }
-        else {
-            // If we can't determine a direction, just reverse the velocity
-            normal.x = -velocity.direction.x;
-            normal.z = -velocity.direction.z;
-        }
-
-        // Debug output
-        std::cout << "Collision normal: " << normal.x << ", " << normal.z << std::endl;
-        std::cout << "Incoming velocity: " << velocity.direction.x << ", " << velocity.direction.z << std::endl;
-
-        // Calculate dot product of velocity direction and normal
-        float dotProduct = velocity.direction.x * normal.x + velocity.direction.z * normal.z;
-
-        // Calculate reflection vector: R = V - 2(V·N)N
-        velocity.direction.x = velocity.direction.x - 2.0f * dotProduct * normal.x;
-        velocity.direction.z = velocity.direction.z - 2.0f * dotProduct * normal.z;
-
-        // Normalize the new direction
-        float newLength = std::sqrt(velocity.direction.x * velocity.direction.x + velocity.direction.z * velocity.direction.z);
-        if (newLength > 0.0f) {
-            velocity.direction.x /= newLength;
-            velocity.direction.z /= newLength;
-        }
-
-        // Move the entity slightly away from the obstacle to prevent getting stuck
-        GW::MATH::GVECTORF movement = normal;
-        movement.x *= 1.5f; // Increased push to prevent sticking
-        movement.z *= 1.5f;
-        movement.y = 0.0f;
-        movement.w = 0.0f;
-
-        GW::MATH::GMatrix::TranslateGlobalF(entityTransform.matrix, movement, entityTransform.matrix);
-
-        std::cout << "Entity collided with obstacle! Bouncing with new direction: "
-            << velocity.direction.x << ", " << velocity.direction.z << std::endl;
-    }
-
-    // Properly transform OBB to world space
     GW::MATH::GOBBF TransformOBBToWorldSpace(const GW::MATH::GOBBF& localOBB, const GW::MATH::GMATRIXF& transform)
     {
         GW::MATH::GOBBF worldOBB = localOBB;
@@ -170,9 +100,14 @@ namespace GAME {
         GW::MATH::GMatrix::GetRotationF(transform, rotation);
         worldOBB.rotation = rotation;
 
+        // Debug output for transformed OBB
+        std::cout << "Transformed OBB - Center: (" << worldOBB.center.x << ", " << worldOBB.center.y << ", " << worldOBB.center.z
+            << "), Extents: (" << worldOBB.extent.x << ", " << worldOBB.extent.y << ", " << worldOBB.extent.z << ")" << std::endl;
+
         return worldOBB;
     }
 
+    // Enhanced collision detection with better debug output
     bool CheckOBBCollision(const GW::MATH::GOBBF& obb1, const GW::MATH::GOBBF& obb2) {
         // Enhanced collision detection with debug output
         float distanceX = std::abs(obb1.center.x - obb2.center.x);
@@ -203,6 +138,82 @@ namespace GAME {
         return collision;
     }
 
+    // Improved entity-obstacle collision handling
+    void HandleEntityObstacleCollision(entt::registry& registry, entt::entity entityEntity, entt::entity obstacleEntity) {
+        // Only handle entities with velocity
+        if (!registry.all_of<Velocity>(entityEntity)) {
+            return;
+        }
+
+        auto& velocity = registry.get<Velocity>(entityEntity);
+        auto& entityTransform = registry.get<Transform>(entityEntity);
+        auto& obstacleTransform = registry.get<Transform>(obstacleEntity);
+
+        // Get entity type for debugging
+        std::string entityType = "Unknown";
+        if (registry.all_of<Player>(entityEntity)) entityType = "Player";
+        else if (registry.all_of<Enemy>(entityEntity)) entityType = "Enemy";
+        else if (registry.all_of<Bullet>(entityEntity)) entityType = "Bullet";
+
+        // Get the translation components from the matrices
+        GW::MATH::GVECTORF entityPos = { 0.0f, 0.0f, 0.0f, 1.0f };
+        GW::MATH::GVECTORF obstaclePos = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+        // Extract the translation from the matrices
+        GW::MATH::GMatrix::GetTranslationF(entityTransform.matrix, entityPos);
+        GW::MATH::GMatrix::GetTranslationF(obstacleTransform.matrix, obstaclePos);
+
+        // Calculate normal vector from obstacle to entity (this is the collision normal)
+        GW::MATH::GVECTORF normal;
+        normal.x = entityPos.x - obstaclePos.x;
+        normal.z = entityPos.z - obstaclePos.z;
+        normal.y = 0.0f; // We're only concerned with 2D movement in XZ plane
+        normal.w = 0.0f;
+
+        // Normalize the normal vector
+        float length = std::sqrt(normal.x * normal.x + normal.z * normal.z);
+        if (length > 0.0f) {
+            normal.x /= length;
+            normal.z /= length;
+        }
+        else {
+            // If we can't determine a direction, just reverse the velocity
+            normal.x = -velocity.direction.x;
+            normal.z = -velocity.direction.z;
+        }
+
+        // Debug output
+        std::cout << entityType << " collision with obstacle at position (" << obstaclePos.x << ", " << obstaclePos.z << ")" << std::endl;
+        std::cout << "Entity position: (" << entityPos.x << ", " << entityPos.z << ")" << std::endl;
+        std::cout << "Collision normal: " << normal.x << ", " << normal.z << std::endl;
+        std::cout << "Incoming velocity: " << velocity.direction.x << ", " << velocity.direction.z << std::endl;
+
+        // Calculate dot product of velocity direction and normal
+        float dotProduct = velocity.direction.x * normal.x + velocity.direction.z * normal.z;
+
+        // Calculate reflection vector: R = V - 2(V·N)N
+        velocity.direction.x = velocity.direction.x - 2.0f * dotProduct * normal.x;
+        velocity.direction.z = velocity.direction.z - 2.0f * dotProduct * normal.z;
+
+        // Normalize the new direction
+        float newLength = std::sqrt(velocity.direction.x * velocity.direction.x + velocity.direction.z * velocity.direction.z);
+        if (newLength > 0.0f) {
+            velocity.direction.x /= newLength;
+            velocity.direction.z /= newLength;
+        }
+
+        // Move the entity slightly away from the obstacle to prevent getting stuck
+        GW::MATH::GVECTORF movement = normal;
+        movement.x *= 2.0f; // Increased push to prevent sticking
+        movement.z *= 2.0f;
+        movement.y = 0.0f;
+        movement.w = 0.0f;
+
+        GW::MATH::GMatrix::TranslateGlobalF(entityTransform.matrix, movement, entityTransform.matrix);
+
+        std::cout << entityType << " collided with obstacle! Bouncing with new direction: "
+            << velocity.direction.x << ", " << velocity.direction.z << std::endl;
+    }
     // Store the collision system entity for later use
     entt::entity g_collisionSystemEntity = entt::null;
 
