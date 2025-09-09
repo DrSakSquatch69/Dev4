@@ -88,18 +88,22 @@ void SetupWalls(entt::registry& registry)
 				// Position and rotate walls at the edges of the play area
 				switch (i) {
 				case 0: // Top wall
-					position.z = 15.0f; // Further out
+					position.z = 10.0f; // Closer to center
+					meshCollection.collider.extent = { 10.0f, 5.0f, 1.0f, 1.0f }; // Thinner in Z direction
 					break;
 				case 1: // Bottom wall
-					position.z = -15.0f; // Further out
+					position.z = -10.0f; // Closer to center
+					meshCollection.collider.extent = { 10.0f, 5.0f, 1.0f, 1.0f }; // Thinner in Z direction
 					break;
 				case 2: // Left wall
-					position.x = -15.0f; // Further out
+					position.x = -10.0f; // Closer to center
 					rotation.y = 90.0f * 3.14159f / 180.0f; // Rotate 90 degrees
+					meshCollection.collider.extent = { 1.0f, 5.0f, 10.0f, 1.0f }; // Thinner in X direction
 					break;
 				case 3: // Right wall
-					position.x = 15.0f; // Further out
+					position.x = 10.0f; // Closer to center
 					rotation.y = 90.0f * 3.14159f / 180.0f; // Rotate 90 degrees
+					meshCollection.collider.extent = { 1.0f, 5.0f, 10.0f, 1.0f }; // Thinner in X direction
 					break;
 				}
 
