@@ -4,59 +4,33 @@
 
 namespace GAME {
 
-	// External function declaration for UpdateCollisionSystem
-	extern void UpdateCollisionSystem(entt::registry& registry);
-
 	void InitializeGameManager(entt::registry& registry) {
 		// Create a GameManager in the registry context
 		registry.ctx().emplace<GameManager>();
 		std::cout << "GameManager initialized" << std::endl;
 	}
 
-	// Update entity transforms based on velocity
-	void UpdateVelocitySystem(entt::registry& registry, float deltaTime) {
-		// Get all entities with Transform and Velocity components
-		auto velocityView = registry.view<Transform, Velocity>();
+    // Pseudocode plan:
+    // 1. The error is caused by calling registry.view() with no component types, which is not valid in EnTT v3+.
+    // 2. To iterate over all entities, use registry.each() instead of registry.view().
+    // 3. If you want to iterate over entities with a specific component (e.g., Player), use registry.view<Player>().
+    // 4. Fix the line in UpdateGameManager that currently reads: auto playerView = registry.view();
+    // 5. Replace it with registry.view<Player>() if you want all Player entities, or use registry.each() for all entities.
 
-		// Update each entity's position based on its velocity
-		for (auto entity : velocityView) {
-			auto& transform = registry.get<Transform>(entity);
-			auto& velocity = registry.get<Velocity>(entity);
+    void UpdateGameManager(entt::registry& registry, float deltaTime) {
+        // Get the GameManager from the registry context
+        auto& gameManager = registry.ctx().get<GameManager>();
+        // Handle keyboard input for toggling visibility 
+        HandleVisibilityToggleInput(registry);
 
-			// Calculate movement vector based on velocity direction and speed
-			GW::MATH::GVECTORF movement = velocity.direction;
-
-			// Scale by speed and deltaTime
-			movement.x *= velocity.speed * deltaTime;
-			movement.y *= velocity.speed * deltaTime;
-			movement.z *= velocity.speed * deltaTime;
-
-			// Apply movement to transform
-			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
-		}
-	}
-
-	void UpdateGameManager(entt::registry& registry, float deltaTime) {
-		// Get the GameManager from the registry context
-		auto& gameManager = registry.ctx().get<GameManager>();
-
-		// Update entity transforms based on velocity (new system)
-		UpdateVelocitySystem(registry, deltaTime);
-
-		// Update the collision system - THIS IS THE KEY ADDITION
-		UpdateCollisionSystem(registry);
-
-		// Handle keyboard input for toggling visibility 
-		HandleVisibilityToggleInput(registry);
-
-		// Update player entities (will use the Player component's on_update method) 
-		auto playerView = registry.view<Player>();
-		for (auto entity : playerView) {
-			registry.patch<Player>(entity); // This will trigger the Player's on_update method 
-		}
-		// Update GPU instances from Transform components 
-		UpdateGPUInstances(registry);
-	}
+        // Update player entities (will use the Player component's on_update method) 
+        auto playerView = registry.view<Player>();
+        for (auto entity : playerView) {
+            registry.patch<Player>(entity); // This will trigger the Player's on_update method 
+        }
+        // Update GPU instances from Transform components 
+        UpdateGPUInstances(registry); 
+    }
 
 	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
 		// Get the input from the registry context
@@ -127,16 +101,11 @@ namespace GAME {
 		}
 	}
 
-
 	// Map to store collections of entities by name
 	std::map<std::string, std::vector<entt::entity>> modelCollections;
 
 	void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName) {
-		// Get the ModelManager from the registry context
-		auto& modelManager = registry.ctx().get<ModelManager>();
-
-		// Add the entity to the collection
-		modelManager.collections[collectionName].push_back(entity);
+		modelCollections[collectionName].push_back(entity);
 	}
 
 	std::vector<entt::entity> GetEntitiesFromCollection(entt::registry& registry, const std::string& collectionName) {
@@ -151,69 +120,45 @@ namespace GAME {
 		entt::entity gameEntity = registry.create();
 
 		// Add a MeshCollection component
-		auto& meshCollection = registry.emplace<MeshCollection>(gameEntity);
+		registry.emplace<MeshCollection>(gameEntity);
 
 		// Add a Transform component with identity matrix initially
 		auto& transform = registry.emplace<Transform>(gameEntity);
 		GW::MATH::GMatrix::IdentityF(transform.matrix);
 
-		// Get the ModelManager
-		auto& modelManager = registry.ctx().get<ModelManager>();
+		// Get entities from the model collection
+		auto modelEntities = GetEntitiesFromCollection(registry, modelName);
+		std::cout << "Model collection " << modelName << " has " << modelEntities.size() << " entities" << std::endl;
 
-		// Check if the model collection exists
-		std::cout << "Looking for model collection: " << modelName << std::endl;
-		if (modelManager.collections.find(modelName) != modelManager.collections.end() &&
-			!modelManager.collections[modelName].empty())
-		{
-			std::cout << "Found model collection: " << modelName << std::endl;
+		// For each entity in the model collection
+		for (auto modelEntity : modelEntities) {
+			// Create a new entity for the mesh
+			entt::entity meshEntity = registry.create();
 
-			// Get the entities from the collection
-			auto& modelEntities = modelManager.collections[modelName];
-			std::cout << "Model collection " << modelName << " has " << modelEntities.size() << " entities" << std::endl;
-
-			// For each entity in the model collection
-			for (auto modelEntity : modelEntities)
-			{
-				// Create a new entity for the mesh
-				entt::entity meshEntity = registry.create();
-
-				// Copy the GeometryData and GPUInstance components
-				if (registry.all_of<DRAW::GeometryData>(modelEntity))
-				{
-					auto& geomData = registry.get<DRAW::GeometryData>(modelEntity);
-					registry.emplace<DRAW::GeometryData>(meshEntity, geomData);
-				}
-
-				if (registry.all_of<DRAW::GPUInstance>(modelEntity))
-				{
-					auto& gpuInstance = registry.get<DRAW::GPUInstance>(modelEntity);
-					registry.emplace<DRAW::GPUInstance>(meshEntity, gpuInstance);
-
-					// Set the transform from the first entity in the collection
-					if (modelEntities[0] == modelEntity)
-					{
-						transform.matrix = gpuInstance.transform;
-					}
-				}
-
-				// Add the mesh entity to the game entity's MeshCollection
-				meshCollection.meshEntities.push_back(meshEntity);
+			// Copy the GeometryData and GPUInstance components
+			if (registry.all_of<DRAW::GeometryData>(modelEntity)) {
+				auto& geomData = registry.get<DRAW::GeometryData>(modelEntity);
+				registry.emplace<DRAW::GeometryData>(meshEntity, geomData);
 			}
 
-			// Initialize the collider with default values
-			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-			meshCollection.collider.extent = { 1.0f, 1.0f, 1.0f, 1.0f };
-			meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+			if (registry.all_of<DRAW::GPUInstance>(modelEntity)) {
+				auto& gpuInstance = registry.get<DRAW::GPUInstance>(modelEntity);
+				registry.emplace<DRAW::GPUInstance>(meshEntity, gpuInstance);
 
-			std::cout << "Game entity created from model: " << modelName << std::endl;
-		}
-		else {
-			std::cout << "Model collection not found: " << modelName << std::endl;
+				if (modelEntities[0] == modelEntity) {
+					transform.matrix = gpuInstance.transform; // Copy the entire transform
+				}
+			}
+
+			// Add the mesh entity to the game entity's MeshCollection
+			auto& meshCollection = registry.get<MeshCollection>(gameEntity);
+			meshCollection.meshEntities.push_back(meshEntity);
 		}
 
 		return gameEntity;
 	}
 
+	// Toggle visibility of an entity
 	void ToggleEntityVisibility(entt::registry& registry, entt::entity entity) {
 		// Get the mesh collection for this entity
 		if (!registry.all_of<MeshCollection>(entity)) {
@@ -233,6 +178,7 @@ namespace GAME {
 		}
 	}
 
+	// Set visibility of an entity
 	void SetEntityVisibility(entt::registry& registry, entt::entity entity, bool visible) {
 		// Get the mesh collection for this entity
 		if (!registry.all_of<MeshCollection>(entity)) {

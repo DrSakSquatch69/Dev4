@@ -9,27 +9,24 @@
 #include "GAME/GameManager.h"
 #include "UTIL/GameConfig.h"
 #include "GAME/Player.h"
-#include "GAME/CollisionSystem.h"
-#include "GAME/CollisionHelper.h"
 
 // Local routines for specific application behavior
 void GraphicsBehavior(entt::registry& registry);
 void GameplayBehavior(entt::registry& registry);
 void MainLoopBehavior(entt::registry& registry);
 void CreatePlayer(entt::registry& registry);
-void SetupWalls(entt::registry& registry);
 
 // Architecture is based on components/entities pushing updates to other components/entities (via "patch" function)
 int main()
 {
 
 	// All components, tags, and systems are stored in a single registry
-	entt::registry registry;
+	entt::registry registry;	
 
 	// initialize the ECS Component Logic
 	CCL::InitializeComponentLogic(registry);
 	GAME::InitializeModelManager(registry);
-	GAME::InitializeCollisionSystem(registry);
+
 
 	// Seed the rand
 	unsigned int time = std::chrono::steady_clock::now().time_since_epoch().count();
@@ -40,118 +37,16 @@ int main()
 	GraphicsBehavior(registry); // create windows, surfaces, and renderers
 
 	GameplayBehavior(registry); // create entities and components for gameplay
-
+	
 	MainLoopBehavior(registry); // update windows and input
 
-
+	
 	// clear all entities and components from the registry
 	// invokes on_destroy() for all components that have it
 	// registry will still be intact while this is happening
-	registry.clear();
+	registry.clear(); 
 
 	return 0; // now destructors will be called for all components
-}
-
-void SetupWalls(entt::registry& registry)
-{
-	std::cout << "Setting up wall entities for collision..." << std::endl;
-
-	// Find all entities with "Wall" in their model name
-	auto& modelManager = registry.ctx().get<GAME::ModelManager>();
-
-	// Check if the Wall collection exists
-	if (modelManager.collections.find("Wall") != modelManager.collections.end()) {
-		std::cout << "Found Wall collection with " << modelManager.collections["Wall"].size() << " entities" << std::endl;
-
-		// Create wall entities from the Wall model
-		for (int i = 0; i < 4; i++) {
-			entt::entity wallEntity = GAME::CreateGameEntityFromModel(registry, "Wall");
-
-			if (registry.valid(wallEntity)) {
-				// Add the Obstacle tag
-				registry.emplace<GAME::Obstacle>(wallEntity);
-
-				// Add the Collidable tag
-				registry.emplace<GAME::Collidable>(wallEntity);
-
-				// Set up the collider with MUCH LARGER size
-				auto& meshCollection = registry.get<GAME::MeshCollection>(wallEntity);
-				meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-				meshCollection.collider.extent = { 20.0f, 5.0f, 5.0f, 1.0f }; // Much larger size for walls
-				meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-				// Position the walls around the play area
-				auto& transform = registry.get<GAME::Transform>(wallEntity);
-				GW::MATH::GVECTORF position = { 0.0f, 0.0f, 0.0f, 1.0f };
-				GW::MATH::GVECTORF rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-				// Position and rotate walls at the edges of the play area
-				switch (i) {
-				case 0: // Top wall
-					position.z = 10.0f; // Closer to center
-					meshCollection.collider.extent = { 10.0f, 5.0f, 1.0f, 1.0f }; // Thinner in Z direction
-					break;
-				case 1: // Bottom wall
-					position.z = -10.0f; // Closer to center
-					meshCollection.collider.extent = { 10.0f, 5.0f, 1.0f, 1.0f }; // Thinner in Z direction
-					break;
-				case 2: // Left wall
-					position.x = -10.0f; // Closer to center
-					rotation.y = 90.0f * 3.14159f / 180.0f; // Rotate 90 degrees
-					meshCollection.collider.extent = { 1.0f, 5.0f, 10.0f, 1.0f }; // Thinner in X direction
-					break;
-				case 3: // Right wall
-					position.x = 10.0f; // Closer to center
-					rotation.y = 90.0f * 3.14159f / 180.0f; // Rotate 90 degrees
-					meshCollection.collider.extent = { 1.0f, 5.0f, 10.0f, 1.0f }; // Thinner in X direction
-					break;
-				}
-
-				// Apply rotation if needed
-				if (rotation.y != 0.0f) {
-					GW::MATH::GMATRIXF rotMatrix;
-					GW::MATH::GMatrix::IdentityF(rotMatrix);
-					GW::MATH::GMatrix::RotationYawPitchRollF(rotation.y, rotation.x, rotation.z, rotMatrix);
-					GW::MATH::GMatrix::MultiplyMatrixF(transform.matrix, rotMatrix, transform.matrix);
-
-					// For walls on the sides, swap the extents
-					meshCollection.collider.extent = { 5.0f, 5.0f, 20.0f, 1.0f };
-				}
-
-				// Apply translation
-				GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, position, transform.matrix);
-
-				std::cout << "Created wall entity at position: " << position.x << ", " << position.z
-					<< " with extents: " << meshCollection.collider.extent.x << ", "
-					<< meshCollection.collider.extent.y << ", " << meshCollection.collider.extent.z << std::endl;
-			}
-		}
-	}
-	else {
-		// Find and tag all existing wall-like entities
-		auto allEntities = registry.view<GAME::MeshCollection>();
-
-		for (auto entity : allEntities) {
-			// Skip entities that already have specific tags
-			if (registry.any_of<GAME::Player, GAME::Enemy, GAME::Bullet>(entity)) {
-				continue;
-			}
-
-			// Add Obstacle and Collidable tags
-			registry.emplace<GAME::Obstacle>(entity);
-			registry.emplace<GAME::Collidable>(entity);
-
-			// Set up the collider with MUCH LARGER size
-			auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
-			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-			meshCollection.collider.extent = { 20.0f, 5.0f, 5.0f, 1.0f }; // Much larger size for walls
-			meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-			std::cout << "Tagged existing entity as wall: " << (int)entity << std::endl;
-		}
-	}
-
-	std::cout << "Wall setup complete" << std::endl;
 }
 
 void CreatePlayer(entt::registry& registry)
@@ -169,26 +64,6 @@ void CreatePlayer(entt::registry& registry)
 		auto& transform = registry.get<GAME::Transform>(playerEntity);
 		GW::MATH::GVECTORF startPosition = { 0.0f, 0.0f, 0.0f };
 		GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, startPosition, transform.matrix);
-
-		// Make sure the MeshCollection has a properly initialized collider
-		auto& meshCollection = registry.get<GAME::MeshCollection>(playerEntity);
-		// Initialize the collider with default values - INCREASED SIZE
-		meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-		meshCollection.collider.extent = { 1.5f, 1.5f, 1.5f, 1.0f }; // Larger size for better collision
-		meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-		std::cout << "Player collider initialized with size: " << meshCollection.collider.extent.x << std::endl;
-
-		// Add the Collidable tag to the entity
-		if (!registry.all_of<GAME::Collidable>(playerEntity)) {
-			registry.emplace<GAME::Collidable>(playerEntity);
-			std::cout << "Player entity created with Collidable tag" << std::endl;
-		}
-		if (registry.ctx().contains<GAME::GameManager>()) {
-			auto& gameManager = registry.ctx().get<GAME::GameManager>();
-			GAME::SetEntityVisibility(registry, playerEntity, true);
-			gameManager.playerVisible = true;
-		}
-		std::cout << "Player entity created with Collidable tag" << std::endl;
 
 		std::cout << "Player entity created successfully" << std::endl;
 	}
@@ -210,21 +85,21 @@ void GraphicsBehavior(entt::registry& registry)
 	auto ModelPath = (*config).at("Level1").at("modelPath").as<std::string>();
 
 	// TODO: Emplace CPULevel. Placing here to reduce occurrence of a json race condition crash
-	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{ LevelFile, ModelPath });
-	GAME::InitializeGameManager(registry);
+	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{LevelFile, ModelPath});
+
 	CreatePlayer(registry);
-	SetupWalls(registry);
+
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
 	int windowHeight = (*config).at("Window").at("height").as<int>();
 	int startX = (*config).at("Window").at("xstart").as<int>();
 	int startY = (*config).at("Window").at("ystart").as<int>();
 	registry.emplace<APP::Window>(display,
-		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2" });
+		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2"});
 
 
 	// Create the input
-	auto& input = registry.ctx().emplace<UTIL::Input>();
+	auto& input =  registry.ctx().emplace<UTIL::Input>();
 	auto& window = registry.get<GW::SYSTEM::GWindow>(display);
 	input.bufferedInput.Create(window);
 	input.immediateInput.Create(window);
@@ -238,11 +113,11 @@ void GraphicsBehavior(entt::registry& registry)
 	std::string vertShader = (*config).at("Shaders").at("vertex").as<std::string>();
 	std::string pixelShader = (*config).at("Shaders").at("pixel").as<std::string>();
 	registry.emplace<DRAW::VulkanRendererInitialization>(display,
-		DRAW::VulkanRendererInitialization{
+		DRAW::VulkanRendererInitialization{ 
 			vertShader, pixelShader,
 			{ {0.2f, 0.2f, 0.25f, 1} } , { 1.0f, 0u }, 75.f, 0.1f, 100.0f });
 	registry.emplace<DRAW::VulkanRenderer>(display);
-
+	
 	// TODO : Emplace GPULevel
 	registry.emplace<DRAW::GPULevel>(display);
 
@@ -349,168 +224,56 @@ void GameplayBehavior(entt::registry& registry)
 	if (gameManagerEntity == entt::null || !registry.valid(gameManagerEntity))
 	{
 		gameManagerEntity = registry.create();
-		// Only add the GameManager component if it doesn't already exist
-		if (!registry.all_of<GAME::GameManager>(gameManagerEntity)) {
-			registry.emplace<GAME::GameManager>(gameManagerEntity);
-			std::cout << "GameManager entity created" << std::endl;
-		}
+		registry.emplace<GAME::GameManager>(gameManagerEntity);
+		std::cout << "GameManager entity created" << std::endl;
 	}
 
 	// Check if player and enemy entities exist
 	static bool entitiesCreated = false;
 	if (!entitiesCreated)
 	{
+		// Get the config file
+		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
+
+		// Get model names from config with error checking
+		std::string playerModelName = "Turtle"; // Default value
+		std::string enemyModelName = "Cactus";  // Default value
+
 		try {
-			// Get the config file
-			std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
-
-			// Get model names from config with error checking
-			std::string playerModelName = "Turtle"; // Default value
-			std::string enemyModelName = "Cactus";  // Default value
-
-			try {
-				playerModelName = config->at("Player").at("model").as<std::string>();
-			}
-			catch (const std::exception& e) {
-				std::cout << "Player model not found in config, using default: " << e.what() << std::endl;
-				// Keep the default value
-			}
-
-			try {
-				enemyModelName = config->at("Enemy1").at("model").as<std::string>();
-			}
-			catch (const std::exception& e) {
-				std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
-				// Keep the default value
-			}
-
-			// Find the existing player entity instead of creating a new one
-			auto playerView = registry.view<GAME::Player>();
-			entt::entity playerEntity = entt::null;
-
-			if (playerView.begin() != playerView.end()) {
-				playerEntity = *playerView.begin();
-				std::cout << "Found existing player entity" << std::endl;
-
-				// Make sure the MeshCollection has a properly initialized collider
-				if (registry.all_of<GAME::MeshCollection>(playerEntity)) {
-					auto& meshCollection = registry.get<GAME::MeshCollection>(playerEntity);
-					// Initialize the collider with default values - INCREASED SIZE
-					meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-					meshCollection.collider.extent = { 1.5f, 1.5f, 1.5f, 1.0f }; // Larger size for better collision
-					meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-					std::cout << "Player collider initialized with size: " << meshCollection.collider.extent.x << std::endl;
-				}
-
-				// Only add the Collidable tag if it doesn't already exist
-				if (!registry.all_of<GAME::Collidable>(playerEntity)) {
-					registry.emplace<GAME::Collidable>(playerEntity);
-					std::cout << "Player entity created with Collidable tag" << std::endl;
-				}
-
-				// FIX: Ensure player is visible
-				GAME::SetEntityVisibility(registry, playerEntity, true);
-				auto& gameManager = registry.ctx().get<GAME::GameManager>();
-				gameManager.playerVisible = true;
-				std::cout << "Player visibility set to true" << std::endl;
-			}
-			else {
-				std::cout << "No player entity found, creating one now" << std::endl;
-				// FIX: Create player if not found
-				CreatePlayer(registry);
-			}
-
-			// Create enemy entity
-			entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
-			if (registry.valid(enemyEntity)) {
-				// Only add the Enemy tag if it doesn't already exist
-				if (!registry.all_of<GAME::Enemy>(enemyEntity)) {
-					registry.emplace<GAME::Enemy>(enemyEntity);
-				}
-
-				// Make sure the MeshCollection has a properly initialized collider
-				if (registry.all_of<GAME::MeshCollection>(enemyEntity)) {
-					auto& meshCollection = registry.get<GAME::MeshCollection>(enemyEntity);
-					// Initialize the collider with default values - INCREASED SIZE
-					meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-					meshCollection.collider.extent = { 2.0f, 2.0f, 2.0f, 1.0f }; // Larger size for better collision
-					meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-					std::cout << "Enemy collider initialized with size: " << meshCollection.collider.extent.x << std::endl;
-				}
-
-				// Only add the Collidable tag if it doesn't already exist
-				if (!registry.all_of<GAME::Collidable>(enemyEntity)) {
-					registry.emplace<GAME::Collidable>(enemyEntity);
-					std::cout << "Enemy entity created with Collidable tag" << std::endl;
-				}
-
-				// Add a Velocity component to the enemy with an initial direction and speed
-				// Only add if it doesn't already exist
-				if (!registry.all_of<GAME::Velocity>(enemyEntity)) {
-					GW::MATH::GVECTORF enemyDirection = UTIL::GetRandomVelocityVector();
-					float enemySpeed = 3.0f; // Default value
-					try {
-						std::string speedStr = config->at("Enemy1").at("speed").as<std::string>();
-						enemySpeed = std::stof(speedStr);
-					}
-					catch (const std::exception& e) {
-						std::cout << "Enemy speed not found in config, using default: " << e.what() << std::endl;
-					}
-					registry.emplace<GAME::Velocity>(enemyEntity, enemyDirection, enemySpeed);
-
-					std::cout << "Enemy created with random diagonal direction: " << enemyDirection.x << ", "
-						<< enemyDirection.z << " and speed: " << enemySpeed << std::endl;
-				}
-			}
-			else {
-				std::cout << "Failed to create enemy entity" << std::endl;
-			}
-
-			// Set initial visibility
-			auto& gameManager = registry.ctx().get<GAME::GameManager>();
-			if (registry.valid(playerEntity)) {
-				GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
-			}
-			if (registry.valid(enemyEntity)) {
-				GAME::SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
-			}
-
-			// Find and tag all wall entities with Obstacle and Collidable tags
-			auto levelEntities = registry.view<GAME::MeshCollection>(entt::exclude<GAME::Player, GAME::Enemy, GAME::Bullet>);
-			for (auto entity : levelEntities) {
-				try {
-					// Assuming walls are part of the level entities
-					// Only add the Obstacle tag if it doesn't already exist
-					if (!registry.all_of<GAME::Obstacle>(entity)) {
-						registry.emplace<GAME::Obstacle>(entity);
-					}
-
-					// Only add the Collidable tag if it doesn't already exist
-					if (!registry.all_of<GAME::Collidable>(entity)) {
-						registry.emplace<GAME::Collidable>(entity);
-					}
-
-					// Initialize collider for the wall - INCREASED SIZE
-					if (registry.all_of<GAME::MeshCollection>(entity)) {
-						auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
-						// Initialize the collider with default values
-						meshCollection.collider.center = { 0.0f, 0.0f, 0.0f, 1.0f };
-						meshCollection.collider.extent = { 2.0f, 2.0f, 2.0f, 1.0f }; // Larger size for walls
-						meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-						std::cout << "Wall collider initialized with size: " << meshCollection.collider.extent.x << std::endl;
-					}
-					std::cout << "Tagged level entity as Obstacle and Collidable: " << (int)entity << std::endl;
-				}
-				catch (const std::exception& e) {
-					std::cout << "Error tagging level entity: " << e.what() << std::endl;
-				}
-			}
-
-			entitiesCreated = true;
+			playerModelName = config->at("Player").at("model").as<std::string>();
 		}
 		catch (const std::exception& e) {
-			std::cout << "Error in GameplayBehavior: " << e.what() << std::endl;
+			std::cout << "Player model not found in config, using default: " << e.what() << std::endl;
+			// Keep the default value
 		}
+
+		try {
+			enemyModelName = config->at("Enemy1").at("model").as<std::string>();
+		}
+		catch (const std::exception& e) {
+			std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
+			// Keep the default value
+		}
+
+		std::cout << "Player model name: " << playerModelName << std::endl;
+		std::cout << "Enemy model name: " << enemyModelName << std::endl;
+
+		// Create player entity
+		entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
+		registry.emplace<GAME::Player>(playerEntity);
+		std::cout << "Player entity created" << std::endl;
+
+		// Create enemy entity
+		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
+		registry.emplace<GAME::Enemy>(enemyEntity);
+		std::cout << "Enemy entity created" << std::endl;
+
+		// Set initial visibility
+		auto& gameManager = registry.ctx().get<GAME::GameManager>();
+		GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
+		GAME::SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
+
+		entitiesCreated = true;
 	}
 
 	// Update the GameManager
@@ -520,7 +283,7 @@ void GameplayBehavior(entt::registry& registry)
 // This function will be called by the main loop to update the main loop
 // It will be responsible for updating any created windows and handling any input
 void MainLoopBehavior(entt::registry& registry)
-{
+{	
 	// main loop
 	int closedCount; // count of closed windows
 	auto winView = registry.view<APP::Window>(); // for updating all windows
@@ -533,7 +296,7 @@ void MainLoopBehavior(entt::registry& registry)
 			std::chrono::steady_clock::now() - start).count();
 		start = std::chrono::steady_clock::now();
 		// Cap delta time to min 30 fps. This will prevent too much time from simulating when dragging the window
-		if (elapsed > 1.0 / 30.0)
+		if(elapsed > 1.0 / 30.0)
 		{
 			elapsed = 1.0 / 30.0;
 		}
@@ -544,7 +307,7 @@ void MainLoopBehavior(entt::registry& registry)
 		for (auto entity : gameManagerView) {
 			registry.patch<GAME::GameManager>(entity); // Update the GameManager
 		}
-		GAME::UpdateCollisionSystem(registry);
+
 		closedCount = 0;
 		// find all Windows that are not closed and call "patch" to update them
 		for (auto entity : winView) {

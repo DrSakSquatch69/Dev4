@@ -11,6 +11,4 @@ namespace GAME {
         std::cout << "ModelManager initialized" << std::endl;
     }
 
-    
-
 } // namespace GAME

@@ -3,34 +3,24 @@
 
 namespace GAME
 {
-	//*** Tags ***//
-	struct Player {};      // Tag to identify player entity
-	struct Enemy {};       // Tag to identify enemy entity
-	struct Bullet {};      // Tag to identify bullet entity
-	struct Collidable {};  // Tag to identify entities that can collide
-	struct Obstacle {};    // Tag to identify obstacles like walls
+    //*** Tags ***//
+    struct Player {};      // Tag to identify player entity
+    struct Enemy {};       // Tag to identify enemy entity
+    struct Bullet {};      // Tag to identify bullet entity
 
+    //*** Components ***//
+    struct Transform {
+        GW::MATH::GMATRIXF matrix;
+    };
 
-	//*** Components ***//
-	struct Transform {
-		GW::MATH::GMATRIXF matrix;
-	};
+    // Collection of mesh entities that make up a game entity
+    struct MeshCollection {
+        std::vector<entt::entity> meshEntities;
+    };
 
-	struct Firing {
-		float cooldown;    // Current cooldown time remaining
-		float maxCooldown; // Maximum cooldown time
-	};
-
-	struct Velocity {
-		GW::MATH::GVECTORF direction; // Direction of movement
-		float speed;                  // Speed scalar
-	};
-
-	struct MeshCollection {
-		std::vector<entt::entity> meshEntities;
-		GW::MATH::GOBBF collider; // Oriented Bounding Box for collision detection
-	};
-
-
+    struct Firing {
+        float cooldown;    // Current cooldown time remaining
+        float maxCooldown; // Maximum cooldown time
+    };
 }// namespace GAME
 #endif // !GAME_COMPONENTS_H_
