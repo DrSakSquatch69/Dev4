@@ -10,13 +10,6 @@ namespace GAME {
 		std::cout << "GameManager initialized" << std::endl;
 	}
 
-    // Pseudocode plan:
-    // 1. The error is caused by calling registry.view() with no component types, which is not valid in EnTT v3+.
-    // 2. To iterate over all entities, use registry.each() instead of registry.view().
-    // 3. If you want to iterate over entities with a specific component (e.g., Player), use registry.view<Player>().
-    // 4. Fix the line in UpdateGameManager that currently reads: auto playerView = registry.view();
-    // 5. Replace it with registry.view<Player>() if you want all Player entities, or use registry.each() for all entities.
-
     void UpdateGameManager(entt::registry& registry, float deltaTime) {
         // Get the GameManager from the registry context
         auto& gameManager = registry.ctx().get<GameManager>();
@@ -153,6 +146,26 @@ namespace GAME {
 			// Add the mesh entity to the game entity's MeshCollection
 			auto& meshCollection = registry.get<MeshCollection>(gameEntity);
 			meshCollection.meshEntities.push_back(meshEntity);
+		}
+
+		// Find a source entity with the same model name to copy the OBB collider
+		auto sourceEntities = GetEntitiesFromCollection(registry, modelName);
+		for (auto sourceEntity : sourceEntities) {
+			if (registry.all_of<MeshCollection>(sourceEntity)) {
+				auto& sourceMeshCollection = registry.get<MeshCollection>(sourceEntity);
+				auto& targetMeshCollection = registry.get<MeshCollection>(gameEntity);
+
+				// Copy the OBB collider
+				targetMeshCollection.obb = sourceMeshCollection.obb;
+				std::cout << "Copied OBB collider for " << modelName << std::endl;
+				break;
+			}
+		}
+
+		// Add Collidable tag for bullets
+		if (modelName == "Bullet") {
+			registry.emplace<Collidable>(gameEntity);
+			std::cout << "Added Collidable tag to bullet entity" << std::endl;
 		}
 
 		return gameEntity;
