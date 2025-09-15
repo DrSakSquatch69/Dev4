@@ -42,14 +42,6 @@ namespace DRAW
             if (model.colliderIndex < levelData.levelColliders.size()) {
                 meshCollection.obb = levelData.levelColliders[model.colliderIndex];
                 std::cout << "Added collider to entity: " << collectionName << std::endl;
-                
-                // Add Obstacle and Collidable tags to level walls
-                // Check if this is not a player or enemy model
-                if (collectionName != "Turtle" && collectionName != "Cactus" && collectionName != "Bullet") {
-                    registry.emplace<GAME::Obstacle>(gameEntity);
-                    registry.emplace<GAME::Collidable>(gameEntity);
-                    std::cout << "Added Obstacle and Collidable tags to: " << collectionName << std::endl;
-                }
             }
 
             // Add Transform component
@@ -62,18 +54,15 @@ namespace DRAW
             }
             registry.emplace<GAME::Transform>(gameEntity, transform);
 
-            // Add Collidable tag if the model is marked as collidable
-            if (model.isCollidable) {
-                registry.emplace<GAME::Collidable>(gameEntity);
-                registry.emplace<GAME::Obstacle>(gameEntity); // Add Obstacle tag for walls
-                std::cout << "Added Collidable and Obstacle tags to entity: " << collectionName << std::endl;
-            }
-
+            // Determine if this entity should be collidable
+            bool shouldBeCollidable = false;
+            
             // Check if this is a player or enemy model
             bool isPlayerOrEnemy = false;
             if (collectionName == "Turtle" || collectionName == "Cactus") {
                 isPlayerOrEnemy = true;
-
+                shouldBeCollidable = true; // Player and enemy should be collidable
+                
                 // Add appropriate tag based on the model name
                 if (collectionName == "Turtle") {
                     registry.emplace<GAME::Player>(gameEntity);
@@ -83,6 +72,19 @@ namespace DRAW
                     registry.emplace<GAME::Enemy>(gameEntity);
                     std::cout << "Added Enemy tag to entity: " << collectionName << std::endl;
                 }
+            }
+            
+            // Check if this is a level wall or obstacle (not player, enemy, or bullet)
+            if (collectionName != "Turtle" && collectionName != "Cactus" && collectionName != "Bullet") {
+                shouldBeCollidable = true; // Level walls should be collidable
+                registry.emplace<GAME::Obstacle>(gameEntity);
+                std::cout << "Added Obstacle tag to: " << collectionName << std::endl;
+            }
+            
+            // Add Collidable tag if needed (only once)
+            if (shouldBeCollidable || model.isCollidable) {
+                registry.emplace<GAME::Collidable>(gameEntity);
+                std::cout << "Added Collidable tag to entity: " << collectionName << std::endl;
             }
 
             // Each model can have multiple meshes

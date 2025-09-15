@@ -72,8 +72,10 @@ namespace GAME
 				// Add the Bullet tag
 				registry.emplace<Bullet>(bulletEntity);
                 
-                // Add the Collidable tag
-                registry.emplace<Collidable>(bulletEntity);
+                // Add the Collidable tag (check first to avoid duplicate)
+                if (!registry.all_of<Collidable>(bulletEntity)) {
+                    registry.emplace<Collidable>(bulletEntity);
+                }
                 
                 // Debug output to verify bullet creation
                 std::cout << "Created bullet entity: " << (uint32_t)bulletEntity << std::endl;

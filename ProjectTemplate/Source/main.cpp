@@ -61,8 +61,10 @@ void CreatePlayer(entt::registry& registry)
 		// Add the Player tag to the entity
 		registry.emplace<GAME::Player>(playerEntity);
         
-        // Add the Collidable tag
-        registry.emplace<GAME::Collidable>(playerEntity);
+        // Add the Collidable tag (check first to avoid duplicate)
+        if (!registry.all_of<GAME::Collidable>(playerEntity)) {
+            registry.emplace<GAME::Collidable>(playerEntity);
+        }
 
 		// Position the player at a suitable starting position
 		auto& transform = registry.get<GAME::Transform>(playerEntity);
@@ -133,8 +135,10 @@ void CreateEnemy(entt::registry& registry)
     // Add the Enemy tag
     registry.emplace<GAME::Enemy>(enemyEntity);
     
-    // Add the Collidable tag
-    registry.emplace<GAME::Collidable>(enemyEntity);
+    // Add the Collidable tag (check first to avoid duplicate)
+    if (!registry.all_of<GAME::Collidable>(enemyEntity)) {
+        registry.emplace<GAME::Collidable>(enemyEntity);
+    }
     
     // Add the Shatters component
     registry.emplace<GAME::Shatters>(enemyEntity, initialShatterCount, shatterAmount, shatterScale);
