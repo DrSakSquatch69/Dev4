@@ -297,22 +297,22 @@ namespace GAME {
                 transformedObb2 = obb2;
                 
                 // Update centers by extracting translation from matrices
-                transformedObb1.center.x = transform1.matrix._41;
-                transformedObb1.center.y = transform1.matrix._42;
-                transformedObb1.center.z = transform1.matrix._43;
+                transformedObb1.center.x = transform1.matrix.data[12];
+                transformedObb1.center.y = transform1.matrix.data[13];
+                transformedObb1.center.z = transform1.matrix.data[14];
                 transformedObb1.center.w = 1.0f;
-                
-                transformedObb2.center.x = transform2.matrix._41;
-                transformedObb2.center.y = transform2.matrix._42;
-                transformedObb2.center.z = transform2.matrix._43;
+
+                transformedObb2.center.x = transform2.matrix.data[12];
+                transformedObb2.center.y = transform2.matrix.data[13];
+                transformedObb2.center.z = transform2.matrix.data[14];
                 transformedObb2.center.w = 1.0f;
 
                 // Check for collision using a simple sphere-sphere test
                 bool collision = false;
                 
                 // Extract positions from transform matrices
-                GW::MATH::GVECTORF position1 = { transform1.matrix._41, transform1.matrix._42, transform1.matrix._43, 1.0f };
-                GW::MATH::GVECTORF position2 = { transform2.matrix._41, transform2.matrix._42, transform2.matrix._43, 1.0f };
+                GW::MATH::GVECTORF position1 = { transform1.matrix.data[12], transform1.matrix.data[13], transform1.matrix.data[14], 1.0f};
+                GW::MATH::GVECTORF position2 = { transform2.matrix.data[12], transform2.matrix.data[13], transform2.matrix.data[14], 1.0f};
                 
                 // Calculate distance between entities
                 float distance = std::sqrt(
@@ -350,9 +350,9 @@ namespace GAME {
                                 auto& enemyTransform = registry.get<Transform>(enemyEntity);
                                 GW::MATH::GVECTORF enemyPosition;
                                 // Extract position from the transform matrix
-                                enemyPosition.x = enemyTransform.matrix._41;
-                                enemyPosition.y = enemyTransform.matrix._42;
-                                enemyPosition.z = enemyTransform.matrix._43;
+                                enemyPosition.x = enemyTransform.matrix.data[12];
+                                enemyPosition.y = enemyTransform.matrix.data[13];
+                                enemyPosition.z = enemyTransform.matrix.data[14];
                                 enemyPosition.w = 1.0f;
                                 
                                 // Only get velocity if it exists
@@ -383,15 +383,18 @@ namespace GAME {
                                     
                                     // Scale down the new enemy
                                     auto& newTransform = registry.get<Transform>(newEnemyEntity);
-                                    GW::MATH::GMATRIXF scaleMatrix;
-                                    GW::MATH::GMatrix::ScalingF(scaleMatrix, 
-                                                               shatters.shatterScale, 
-                                                               shatters.shatterScale, 
-                                                               shatters.shatterScale);
-                                    // Apply scaling to the transform matrix
-                                    GW::MATH::GMATRIXF result;
-                                    GW::MATH::GMatrix::MultiplyMatrixF(scaleMatrix, newTransform.matrix, result);
-                                    newTransform.matrix = result;
+                                    
+                                    // Instead of using matrix multiplication for scaling,
+                                    // we'll directly scale the matrix components
+                                    // Scale the 3x3 rotation/scale part of the matrix
+                                    for (int i = 0; i < 3; i++) {
+                                        for (int j = 0; j < 3; j++) {
+                                            // Access matrix elements using array notation [row][col]
+                                            // Matrix is stored in row-major order
+                                            float* matrixElement = &newTransform.matrix.data[i * 4 + j];
+                                            *matrixElement *= shatters.shatterScale;
+                                        }
+                                    }
                                     
                                     // Position the new enemy near the original enemy with slight offset
                                     GW::MATH::GVECTORF offset = {
