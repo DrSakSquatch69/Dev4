@@ -15,6 +15,7 @@ void GraphicsBehavior(entt::registry& registry);
 void GameplayBehavior(entt::registry& registry);
 void MainLoopBehavior(entt::registry& registry);
 void CreatePlayer(entt::registry& registry);
+void CreateEnemy(entt::registry& registry);
 
 // Architecture is based on components/entities pushing updates to other components/entities (via "patch" function)
 int main()
@@ -59,6 +60,9 @@ void CreatePlayer(entt::registry& registry)
 		!registry.get<GAME::MeshCollection>(playerEntity).meshEntities.empty()) {
 		// Add the Player tag to the entity
 		registry.emplace<GAME::Player>(playerEntity);
+        
+        // Add the Collidable tag
+        registry.emplace<GAME::Collidable>(playerEntity);
 
 		// Position the player at a suitable starting position
 		auto& transform = registry.get<GAME::Transform>(playerEntity);
@@ -70,6 +74,99 @@ void CreatePlayer(entt::registry& registry)
 	else {
 		std::cout << "Failed to create player entity - model collection not found or empty" << std::endl;
 	}
+}
+
+void CreateEnemy(entt::registry& registry)
+{
+    // Get the config file
+    std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
+    
+    // Get enemy model name and properties from config
+    std::string enemyModelName = "Cactus"; // Default value
+    int initialShatterCount = 4; // Default value
+    float enemySpeed = 8.0f; // Default value
+    int shatterAmount = 2; // Default value
+    float shatterScale = 0.7f; // Default value
+    
+    try {
+        enemyModelName = config->at("Enemy1").at("model").as<std::string>();
+    }
+    catch (const std::exception& e) {
+        std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
+    }
+    
+    try {
+        std::string countStr = config->at("Enemy1").at("initialShatterCount").as<std::string>();
+        initialShatterCount = std::stoi(countStr);
+    }
+    catch (const std::exception& e) {
+        std::cout << "Enemy shatter count not found in config, using default: " << e.what() << std::endl;
+    }
+    
+    try {
+        std::string speedStr = config->at("Enemy1").at("speed").as<std::string>();
+        enemySpeed = std::stof(speedStr);
+    }
+    catch (const std::exception& e) {
+        std::cout << "Enemy speed not found in config, using default: " << e.what() << std::endl;
+    }
+    
+    try {
+        std::string amountStr = config->at("Enemy1").at("shatterAmount").as<std::string>();
+        shatterAmount = std::stoi(amountStr);
+    }
+    catch (const std::exception& e) {
+        std::cout << "Enemy shatter amount not found in config, using default: " << e.what() << std::endl;
+    }
+    
+    try {
+        std::string scaleStr = config->at("Enemy1").at("shatterScale").as<std::string>();
+        shatterScale = std::stof(scaleStr);
+    }
+    catch (const std::exception& e) {
+        std::cout << "Enemy shatter scale not found in config, using default: " << e.what() << std::endl;
+    }
+    
+    // Create enemy entity
+    entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
+    
+    // Add the Enemy tag
+    registry.emplace<GAME::Enemy>(enemyEntity);
+    
+    // Add the Collidable tag
+    registry.emplace<GAME::Collidable>(enemyEntity);
+    
+    // Add the Shatters component
+    registry.emplace<GAME::Shatters>(enemyEntity, initialShatterCount, shatterAmount, shatterScale);
+    
+    // Create a random diagonal direction for the enemy
+    GW::MATH::GVECTORF direction = { 0.0f, 0.0f, 0.0f };
+    
+    // Generate random direction ensuring it's diagonal (both x and z are non-zero)
+    do {
+        direction.x = (float)rand() / RAND_MAX * 2.0f - 1.0f; // -1 to 1
+        direction.z = (float)rand() / RAND_MAX * 2.0f - 1.0f; // -1 to 1
+    } while (std::abs(direction.x) < 0.3f || std::abs(direction.z) < 0.3f); // Ensure significant diagonal movement
+    
+    // Normalize the direction vector
+    float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
+    direction.x /= length;
+    direction.z /= length;
+    
+    // Add the Velocity component
+    registry.emplace<GAME::Velocity>(enemyEntity, direction, enemySpeed);
+    
+    // Position the enemy at a random position
+    auto& transform = registry.get<GAME::Transform>(enemyEntity);
+    GW::MATH::GVECTORF startPosition = { 
+        (float)rand() / RAND_MAX * 10.0f - 5.0f, // -5 to 5
+        0.0f,
+        (float)rand() / RAND_MAX * 10.0f - 5.0f  // -5 to 5
+    };
+    GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, startPosition, transform.matrix);
+    
+    std::cout << "Enemy entity created with velocity: " << direction.x << ", " << direction.z 
+              << " and position: " << startPosition.x << ", " << startPosition.z << std::endl;
 }
 
 // This function will be called by the main loop to update the graphics
@@ -95,7 +192,7 @@ void GraphicsBehavior(entt::registry& registry)
 	int startX = (*config).at("Window").at("xstart").as<int>();
 	int startY = (*config).at("Window").at("ystart").as<int>();
 	registry.emplace<APP::Window>(display,
-		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2"});
+		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 3"});
 
 
 	// Create the input
@@ -232,46 +329,30 @@ void GameplayBehavior(entt::registry& registry)
 	static bool entitiesCreated = false;
 	if (!entitiesCreated)
 	{
-		// Get the config file
-		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
-
-		// Get model names from config with error checking
-		std::string playerModelName = "Turtle"; // Default value
-		std::string enemyModelName = "Cactus";  // Default value
-
-		try {
-			playerModelName = config->at("Player").at("model").as<std::string>();
-		}
-		catch (const std::exception& e) {
-			std::cout << "Player model not found in config, using default: " << e.what() << std::endl;
-			// Keep the default value
-		}
-
-		try {
-			enemyModelName = config->at("Enemy1").at("model").as<std::string>();
-		}
-		catch (const std::exception& e) {
-			std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
-			// Keep the default value
-		}
-
-		std::cout << "Player model name: " << playerModelName << std::endl;
-		std::cout << "Enemy model name: " << enemyModelName << std::endl;
-
 		// Create player entity
-		entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
-		registry.emplace<GAME::Player>(playerEntity);
+		CreatePlayer(registry);
 		std::cout << "Player entity created" << std::endl;
 
 		// Create enemy entity
-		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
-		registry.emplace<GAME::Enemy>(enemyEntity);
+		CreateEnemy(registry);
 		std::cout << "Enemy entity created" << std::endl;
 
 		// Set initial visibility
 		auto& gameManager = registry.ctx().get<GAME::GameManager>();
-		GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
-		GAME::SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
+		
+		// Find the player entity
+		auto playerView = registry.view<GAME::Player>();
+		if (playerView.begin() != playerView.end()) {
+			auto playerEntity = *playerView.begin();
+			GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
+		}
+		
+		// Find the enemy entity
+		auto enemyView = registry.view<GAME::Enemy>();
+		if (enemyView.begin() != enemyView.end()) {
+			auto enemyEntity = *enemyView.begin();
+			GAME::SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
+		}
 
 		entitiesCreated = true;
 	}
