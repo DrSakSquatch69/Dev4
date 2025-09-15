@@ -15,6 +15,7 @@ namespace GAME {
     // ModelManager component to store model collections
     struct ModelManager {
         std::map<std::string, std::vector<entt::entity>> collections;
+        std::map<std::string, GW::MATH::GOBBF> modelOBBs; // Store OBBs for each model type
     };
 
     // Initialize the ModelManager

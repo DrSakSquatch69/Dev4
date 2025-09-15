@@ -321,8 +321,10 @@ namespace GAME {
                     std::pow(position1.z - position2.z, 2)
                 );
 
+
+                // Debug output for collision detection\n                bool isEntity1Bullet = registry.all_of<Bullet>(entity1);\n                bool isEntity2Bullet = registry.all_of<Bullet>(entity2);\n                bool isEntity1Enemy = registry.all_of<Enemy>(entity1);\n                bool isEntity2Enemy = registry.all_of<Enemy>(entity2);\n                \n                if ((isEntity1Bullet && isEntity2Enemy) || (isEntity2Bullet && isEntity1Enemy)) {\n                    std::cout << "Distance between bullet and enemy: " << distance << std::endl;\n                }
                 // Simple collision detection based on distance
-                float collisionThreshold = 1.0f; // Adjust as needed
+                float collisionThreshold = 0.75f; // Adjust as needed
                 collision = distance < collisionThreshold;
 
                 if (collision) {
@@ -373,7 +375,9 @@ namespace GAME {
                                     registry.emplace<Enemy>(newEnemyEntity);
                                     
                                     // Add Collidable tag
-                                    registry.emplace<Collidable>(newEnemyEntity);
+                                    if (!registry.all_of<Collidable>(newEnemyEntity)) {
+                                        registry.emplace<Collidable>(newEnemyEntity);
+                                    }
                                     
                                     // Add Shatters component with reduced count
                                     registry.emplace<Shatters>(newEnemyEntity, 

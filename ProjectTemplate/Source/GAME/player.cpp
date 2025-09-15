@@ -110,6 +110,7 @@ namespace GAME
 
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
+	\t\t\t// Scale the bullet to make it visible\n\t\t\t\tfor (int i = 0; i < 3; i++) {\n\t\t\t\t\tfor (int j = 0; j < 3; j++) {\n\t\t\t\t\t\t// Scale the bullet (make it larger)\n\t\t\t\t\t\tfloat* matrixElement = &bulletTransform.matrix.data[i * 4 + j];\n\t\t\t\t\t\t*matrixElement *= 2.0f; // Scale to 200% of original size\n\t\t\t\t\t}\n\t\t\t\t}
 
 				std::cout << "Bullet fired! Direction: " << direction.x << ", " << direction.z << std::endl;
 			}
