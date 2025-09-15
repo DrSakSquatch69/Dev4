@@ -9,6 +9,7 @@ namespace GAME
     struct Bullet {};      // Tag to identify bullet entity
     struct Collidable {};  // Tag to identify collidable entity
     struct Obstacle {};    // Tag to identify wall/obstacle entity
+    struct ToDestroy {};   // Tag to identify entities that should be destroyed
 
     //*** Components ***//
     struct Transform {
@@ -24,6 +25,19 @@ namespace GAME
     struct Firing {
         float cooldown;    // Current cooldown time remaining
         float maxCooldown; // Maximum cooldown time
+    };
+
+    // Velocity component for movement
+    struct Velocity {
+        GW::MATH::GVECTORF direction; // Normalized direction vector
+        float speed;                  // Speed scalar
+    };
+
+    // Shatters component for enemy shattering behavior
+    struct Shatters {
+        int shatterCount;   // How many more times this entity can shatter
+        int shatterAmount;  // How many pieces to shatter into
+        float shatterScale; // Scale factor for shattered pieces
     };
 }// namespace GAME
 #endif // !GAME_COMPONENTS_H_
