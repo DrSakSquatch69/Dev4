@@ -350,9 +350,9 @@ namespace GAME {
                                 auto& enemyTransform = registry.get<Transform>(enemyEntity);
                                 GW::MATH::GVECTORF enemyPosition;
                                 // Extract position from the transform matrix
-                                enemyPosition.x = enemyTransform.matrix._41;
-                                enemyPosition.y = enemyTransform.matrix._42;
-                                enemyPosition.z = enemyTransform.matrix._43;
+                                enemyPosition.x = enemyTransform.matrix.data[12];
+                                enemyPosition.y = enemyTransform.matrix.data[13];
+                                enemyPosition.z = enemyTransform.matrix.data[14];
                                 enemyPosition.w = 1.0f;
                                 
                                 // Only get velocity if it exists
