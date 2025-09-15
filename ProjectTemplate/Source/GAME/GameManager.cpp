@@ -322,7 +322,7 @@ namespace GAME {
                 );
 
                 // Simple collision detection based on distance
-                float collisionThreshold = 1.0f; // Adjust as needed
+                float collisionThreshold = 2.0f; // Increased threshold for better collision detection
                 collision = distance < collisionThreshold;
 
                 if (collision) {

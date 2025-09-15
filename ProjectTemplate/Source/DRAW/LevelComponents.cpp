@@ -24,7 +24,7 @@ namespace DRAW
             // Add the entity to the appropriate collection based on the model name
             std::string modelName = model.filename;
             std::string collectionName = modelName;
-            size_t lastSlash = collectionName.find_last_of("/\\");
+            size_t lastSlash = collectionName.find_last_of("/\&quot;);
             if (lastSlash != std::string::npos)
                 collectionName = collectionName.substr(lastSlash + 1);
 
@@ -42,6 +42,14 @@ namespace DRAW
             if (model.colliderIndex < levelData.levelColliders.size()) {
                 meshCollection.obb = levelData.levelColliders[model.colliderIndex];
                 std::cout << "Added collider to entity: " << collectionName << std::endl;
+                
+                // Add Obstacle and Collidable tags to level walls
+                // Check if this is not a player or enemy model
+                if (collectionName != "Turtle" && collectionName != "Cactus" && collectionName != "Bullet") {
+                    registry.emplace<GAME::Obstacle>(gameEntity);
+                    registry.emplace<GAME::Collidable>(gameEntity);
+                    std::cout << "Added Obstacle and Collidable tags to: " << collectionName << std::endl;
+                }
             }
 
             // Add Transform component

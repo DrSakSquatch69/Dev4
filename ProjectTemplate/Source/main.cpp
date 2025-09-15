@@ -184,8 +184,6 @@ void GraphicsBehavior(entt::registry& registry)
 	// TODO: Emplace CPULevel. Placing here to reduce occurrence of a json race condition crash
 	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{LevelFile, ModelPath});
 
-	CreatePlayer(registry);
-
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
 	int windowHeight = (*config).at("Window").at("height").as<int>();
@@ -383,7 +381,7 @@ void MainLoopBehavior(entt::registry& registry)
 		}
 		deltaTime = elapsed;
 
-		// TODO : Update Game
+		// Update Game
 		auto gameManagerView = registry.view<GAME::GameManager>();
 		for (auto entity : gameManagerView) {
 			registry.patch<GAME::GameManager>(entity); // Update the GameManager

@@ -74,6 +74,9 @@ namespace GAME
                 
                 // Add the Collidable tag
                 registry.emplace<Collidable>(bulletEntity);
+                
+                // Debug output to verify bullet creation
+                std::cout << "Created bullet entity: " << (uint32_t)bulletEntity << std::endl;
 
 				// Set the bullet's position to the player's position
 				auto& bulletTransform = registry.get<Transform>(bulletEntity);
@@ -107,6 +110,7 @@ namespace GAME
 
                 // Add velocity component to the bullet
                 registry.emplace<Velocity>(bulletEntity, direction, bulletSpeed);
+                std::cout << "Added velocity to bullet: " << direction.x << ", " << direction.z << " with speed: " << bulletSpeed << std::endl;
 
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
