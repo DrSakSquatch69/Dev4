@@ -297,22 +297,22 @@ namespace GAME {
                 transformedObb2 = obb2;
                 
                 // Update centers by extracting translation from matrices
-                transformedObb1.center.x = transform1.matrix._41;
-                transformedObb1.center.y = transform1.matrix._42;
-                transformedObb1.center.z = transform1.matrix._43;
+                transformedObb1.center.x = transform1.matrix.data[12];
+                transformedObb1.center.y = transform1.matrix.data[13];
+                transformedObb1.center.z = transform1.matrix.data[14];
                 transformedObb1.center.w = 1.0f;
-                
-                transformedObb2.center.x = transform2.matrix._41;
-                transformedObb2.center.y = transform2.matrix._42;
-                transformedObb2.center.z = transform2.matrix._43;
+
+                transformedObb2.center.x = transform2.matrix.data[12];
+                transformedObb2.center.y = transform2.matrix.data[13];
+                transformedObb2.center.z = transform2.matrix.data[14];
                 transformedObb2.center.w = 1.0f;
 
                 // Check for collision using a simple sphere-sphere test
                 bool collision = false;
                 
                 // Extract positions from transform matrices
-                GW::MATH::GVECTORF position1 = { transform1.matrix._41, transform1.matrix._42, transform1.matrix._43, 1.0f };
-                GW::MATH::GVECTORF position2 = { transform2.matrix._41, transform2.matrix._42, transform2.matrix._43, 1.0f };
+                GW::MATH::GVECTORF position1 = { transform1.matrix.data[12], transform1.matrix.data[13], transform1.matrix.data[14], 1.0f};
+                GW::MATH::GVECTORF position2 = { transform2.matrix.data[12], transform2.matrix.data[13], transform2.matrix.data[14], 1.0f};
                 
                 // Calculate distance between entities
                 float distance = std::sqrt(
