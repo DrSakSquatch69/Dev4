@@ -383,15 +383,18 @@ namespace GAME {
                                     
                                     // Scale down the new enemy
                                     auto& newTransform = registry.get<Transform>(newEnemyEntity);
-                                    GW::MATH::GMATRIXF scaleMatrix;
-                                    GW::MATH::GMatrix::ScalingF(scaleMatrix, 
-                                                               shatters.shatterScale, 
-                                                               shatters.shatterScale, 
-                                                               shatters.shatterScale);
-                                    // Apply scaling to the transform matrix
-                                    GW::MATH::GMATRIXF result;
-                                    GW::MATH::GMatrix::MultiplyMatrixF(scaleMatrix, newTransform.matrix, result);
-                                    newTransform.matrix = result;
+                                    
+                                    // Instead of using matrix multiplication for scaling,
+                                    // we'll directly scale the matrix components
+                                    // Scale the 3x3 rotation/scale part of the matrix
+                                    for (int i = 0; i < 3; i++) {
+                                        for (int j = 0; j < 3; j++) {
+                                            // Access matrix elements using array notation [row][col]
+                                            // Matrix is stored in row-major order
+                                            float* matrixElement = &newTransform.matrix.data[i * 4 + j];
+                                            *matrixElement *= shatters.shatterScale;
+                                        }
+                                    }
                                     
                                     // Position the new enemy near the original enemy with slight offset
                                     GW::MATH::GVECTORF offset = {
