@@ -19,6 +19,12 @@ namespace GAME {
 
     // Initialize the ModelManager
     void InitializeModelManager(entt::registry& registry);
+    
+    // Register a model with the ModelManager
+    void RegisterModel(entt::registry& registry, const std::string& modelName, const std::string& modelPath);
+    
+    // Register all required models
+    void RegisterRequiredModels(entt::registry& registry);
 
     // Add an entity to a named collection
     void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName);

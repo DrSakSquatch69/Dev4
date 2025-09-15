@@ -28,12 +28,15 @@ int main()
 	CCL::InitializeComponentLogic(registry);
 	GAME::InitializeModelManager(registry);
 
+	// Initialize Config
+	registry.ctx().emplace<UTIL::Config>();
+	
+	// Register all required models
+	GAME::RegisterRequiredModels(registry);
 
 	// Seed the rand
 	unsigned int time = std::chrono::steady_clock::now().time_since_epoch().count();
 	srand(time);
-
-	registry.ctx().emplace<UTIL::Config>();
 
 	GraphicsBehavior(registry); // create windows, surfaces, and renderers
 
@@ -61,8 +64,10 @@ void CreatePlayer(entt::registry& registry)
 		// Add the Player tag to the entity
 		registry.emplace<GAME::Player>(playerEntity);
         
-        // Add the Collidable tag
-        registry.emplace<GAME::Collidable>(playerEntity);
+        // Add the Collidable tag (check first to avoid duplicate)
+        if (!registry.all_of<GAME::Collidable>(playerEntity)) {
+            registry.emplace<GAME::Collidable>(playerEntity);
+        }
 
 		// Position the player at a suitable starting position
 		auto& transform = registry.get<GAME::Transform>(playerEntity);
@@ -133,8 +138,10 @@ void CreateEnemy(entt::registry& registry)
     // Add the Enemy tag
     registry.emplace<GAME::Enemy>(enemyEntity);
     
-    // Add the Collidable tag
-    registry.emplace<GAME::Collidable>(enemyEntity);
+    // Add the Collidable tag (check first to avoid duplicate)
+    if (!registry.all_of<GAME::Collidable>(enemyEntity)) {
+        registry.emplace<GAME::Collidable>(enemyEntity);
+    }
     
     // Add the Shatters component
     registry.emplace<GAME::Shatters>(enemyEntity, initialShatterCount, shatterAmount, shatterScale);
@@ -183,8 +190,6 @@ void GraphicsBehavior(entt::registry& registry)
 
 	// TODO: Emplace CPULevel. Placing here to reduce occurrence of a json race condition crash
 	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{LevelFile, ModelPath});
-
-	CreatePlayer(registry);
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
@@ -383,7 +388,7 @@ void MainLoopBehavior(entt::registry& registry)
 		}
 		deltaTime = elapsed;
 
-		// TODO : Update Game
+		// Update Game
 		auto gameManagerView = registry.view<GAME::GameManager>();
 		for (auto entity : gameManagerView) {
 			registry.patch<GAME::GameManager>(entity); // Update the GameManager
