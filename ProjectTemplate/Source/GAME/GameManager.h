@@ -27,9 +27,6 @@ namespace GAME
     // Update player movement based on input
     void UpdatePlayerMovement(entt::registry& registry, float deltaTime);
 
-    // Update entity positions based on velocity
-    void UpdateVelocitySystem(entt::registry& registry, float deltaTime);
-
     // Update GPU instances from Transform components
     void UpdateGPUInstances(entt::registry& registry);
 
@@ -50,12 +47,6 @@ namespace GAME
 
     // Handle keyboard input for toggling visibility
     void HandleVisibilityToggleInput(entt::registry& registry);
-
-    // Check for collisions between entities
-    void CheckCollisions(entt::registry& registry);
-
-    // Process entities marked for destruction
-    void ProcessDestroyedEntities(entt::registry& registry);
 }
 
 #endif // GAME_MANAGER_H

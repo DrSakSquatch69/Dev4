@@ -4,7 +4,7 @@
 namespace DRAW
 {
 // Call this function after Level_Data is loaded and buffers are ready
-    void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
+void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
     {
         // Get the CPULevel and Level_Data
         if (!registry.all_of<CPULevel>(displayEntity)) return;
@@ -18,65 +18,6 @@ namespace DRAW
             if (blenderObj.modelIndex >= levelData.levelModels.size()) continue;
             const auto& model = levelData.levelModels[blenderObj.modelIndex];
 
-            // Create a game entity for this object
-            entt::entity gameEntity = registry.create();
-
-            // Add the entity to the appropriate collection based on the model name
-            std::string modelName = model.filename;
-            std::string collectionName = modelName;
-            size_t lastSlash = collectionName.find_last_of("/\\");
-            if (lastSlash != std::string::npos)
-                collectionName = collectionName.substr(lastSlash + 1);
-
-            size_t lastDot = collectionName.find_last_of(".");
-            if (lastDot != std::string::npos)
-                collectionName = collectionName.substr(0, lastDot);
-
-            std::cout << "Adding entity to collection: " << collectionName << std::endl;
-            GAME::AddEntityToCollection(registry, gameEntity, collectionName);
-
-            // Create MeshCollection for the game entity
-            GAME::MeshCollection meshCollection;
-
-            // Add the OBB collider to the MeshCollection
-            if (model.colliderIndex < levelData.levelColliders.size()) {
-                meshCollection.obb = levelData.levelColliders[model.colliderIndex];
-                std::cout << "Added collider to entity: " << collectionName << std::endl;
-            }
-
-            // Add Transform component
-            GAME::Transform transform;
-            if (blenderObj.transformIndex < levelData.levelTransforms.size()) {
-                transform.matrix = levelData.levelTransforms[blenderObj.transformIndex];
-            }
-            else {
-                GW::MATH::GMatrix::IdentityF(transform.matrix);
-            }
-            registry.emplace<GAME::Transform>(gameEntity, transform);
-
-            // Add Collidable tag if the model is marked as collidable
-            if (model.isCollidable) {
-                registry.emplace<GAME::Collidable>(gameEntity);
-                registry.emplace<GAME::Obstacle>(gameEntity); // Add Obstacle tag for walls
-                std::cout << "Added Collidable and Obstacle tags to entity: " << collectionName << std::endl;
-            }
-
-            // Check if this is a player or enemy model
-            bool isPlayerOrEnemy = false;
-            if (collectionName == "Turtle" || collectionName == "Cactus") {
-                isPlayerOrEnemy = true;
-
-                // Add appropriate tag based on the model name
-                if (collectionName == "Turtle") {
-                    registry.emplace<GAME::Player>(gameEntity);
-                    std::cout << "Added Player tag to entity: " << collectionName << std::endl;
-                }
-                else if (collectionName == "Cactus") {
-                    registry.emplace<GAME::Enemy>(gameEntity);
-                    std::cout << "Added Enemy tag to entity: " << collectionName << std::endl;
-                }
-            }
-
             // Each model can have multiple meshes
             for (unsigned meshIdx = 0; meshIdx < model.meshCount; ++meshIdx)
             {
@@ -87,6 +28,20 @@ namespace DRAW
 
                 // Create a new entity for this mesh instance
                 entt::entity meshEntity = registry.create();
+
+                // Add the entity to the appropriate collection based on the model name
+                std::string modelName = model.filename;
+                std::string collectionName = modelName;
+                size_t lastSlash = collectionName.find_last_of("/\\");
+                    if (lastSlash != std::string::npos)
+                        collectionName = collectionName.substr(lastSlash + 1);
+
+                size_t lastDot = collectionName.find_last_of(".");
+                if (lastDot != std::string::npos)
+                    collectionName = collectionName.substr(0, lastDot);
+
+                std::cout << "Adding entity to collection: " << collectionName << std::endl;
+                GAME::AddEntityToCollection(registry, meshEntity, collectionName);
 
                 // Fill out GeometryData
                 GeometryData geom;
@@ -111,26 +66,19 @@ namespace DRAW
                 registry.emplace<GeometryData>(meshEntity, geom);
                 registry.emplace<GPUInstance>(meshEntity, instance);
 
-                // Add DoNotRender tag to dynamic meshes that are not player or enemy
-                if (model.isDynamic && !isPlayerOrEnemy)
+                // Add DoNotRender tag to dynamic meshes
+                if (model.isDynamic)
                 {
                     registry.emplace<DoNotRender>(meshEntity);
-                    std::cout << "Added DoNotRender tag to dynamic model mesh: " << model.filename << std::endl;
+                    std::cout << "Added DoNotRender tag to dynamic model mesh" << model.filename << std::endl;
                 }
                 else
                 {
-                    std::cout << "Model will render: " << model.filename << std::endl;
+                    std::cout << "Static model (should render): " << model.filename << std::endl;
                 }
-
-                // Add mesh entity to the collection
-                meshCollection.meshEntities.push_back(meshEntity);
             }
-
-            // Add the MeshCollection to the game entity
-            registry.emplace<GAME::MeshCollection>(gameEntity, meshCollection);
         }
-    }
-
+}
 
 void Construct_CPULevel(entt::registry& registry, entt::entity entity)
 {

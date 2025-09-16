@@ -71,47 +71,15 @@ namespace GAME
 
 				// Add the Bullet tag
 				registry.emplace<Bullet>(bulletEntity);
-                
-                // Add the Collidable tag
-                registry.emplace<Collidable>(bulletEntity);
 
 				// Set the bullet's position to the player's position
 				auto& bulletTransform = registry.get<Transform>(bulletEntity);
 				bulletTransform.matrix = transform.matrix; // Copy the player's transform
 
-                // Create a velocity vector based on arrow key input
-                GW::MATH::GVECTORF direction = { 0.0f, 0.0f, 0.0f };
-                
-                if (rightKey > 0.0f) { direction.x += 1.0f; }
-                if (leftKey > 0.0f) { direction.x -= 1.0f; }
-                if (upKey > 0.0f) { direction.z += 1.0f; }
-                if (downKey > 0.0f) { direction.z -= 1.0f; }
-
-                // Normalize the direction vector
-                float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
-                if (length > 0.0f) {
-                    direction.x /= length;
-                    direction.z /= length;
-                }
-
-                // Get bullet speed from config
-                std::shared_ptr config = registry.ctx().get<UTIL::Config>().gameConfig;
-                float bulletSpeed = 20.0f; // Default value
-                try {
-                    std::string speedStr = config->at("Bullet").at("speed").as<std::string>();
-                    bulletSpeed = std::stof(speedStr);
-                }
-                catch (const std::exception& e) {
-                    std::cout << "Bullet speed not found in config, using default: " << e.what() << std::endl;
-                }
-
-                // Add velocity component to the bullet
-                registry.emplace<Velocity>(bulletEntity, direction, bulletSpeed);
-
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
 
-				std::cout << "Bullet fired! Direction: " << direction.x << ", " << direction.z << std::endl;
+				std::cout << "Bullet fired!" << std::endl;
 			}
 		}
 	}
