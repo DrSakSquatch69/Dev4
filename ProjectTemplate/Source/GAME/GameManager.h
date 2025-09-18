@@ -57,6 +57,8 @@ namespace GAME
     void RemoveDestroyedEntities(entt::registry& registry);
 
     void HandleEnemyShattering(entt::registry& registry, entt::entity enemyEntity);
+
+
 }
 
 #endif // GAME_MANAGER_H

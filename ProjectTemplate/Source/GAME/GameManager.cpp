@@ -333,6 +333,9 @@ namespace GAME {
 		// Check if either entity is a bullet
 		bool isEntity1Bullet = registry.all_of<Bullet>(entity1);
 		bool isEntity2Bullet = registry.all_of<Bullet>(entity2);
+		// Check if either entity is a wall
+		bool isEntity1Wall = registry.all_of<Wall>(entity1);
+		bool isEntity2Wall = registry.all_of<Wall>(entity2);
 
 		// Enemy-Enemy collision: bounce off each other
 		if (isEntity1Enemy && isEntity2Enemy) {
@@ -347,6 +350,25 @@ namespace GAME {
 				velocity2.direction.x = -velocity2.direction.x;
 				velocity2.direction.z = -velocity2.direction.z;
 			}
+		}
+		// Enemy-Wall collision: bounce the enemy off the wall
+		else if ((isEntity1Enemy && isEntity2Wall) || (isEntity1Wall && isEntity2Enemy)) {
+			entt::entity enemyEntity = isEntity1Enemy ? entity1 : entity2;
+
+			if (registry.all_of<Velocity>(enemyEntity)) {
+				auto& velocity = registry.get<Velocity>(enemyEntity);
+
+				// Simple bounce: reverse direction
+				velocity.direction.x = -velocity.direction.x;
+				velocity.direction.z = -velocity.direction.z;
+			}
+		}
+		// Bullet-Wall collision: destroy the bullet
+		else if ((isEntity1Bullet && isEntity2Wall) || (isEntity1Wall && isEntity2Bullet)) {
+			entt::entity bulletEntity = isEntity1Bullet ? entity1 : entity2;
+
+			// Mark the bullet for destruction
+			registry.emplace<ToDestroy>(bulletEntity);
 		}
 		// Enemy-Bullet collision: destroy bullet, handle enemy shattering
 		else if ((isEntity1Enemy && isEntity2Bullet) || (isEntity1Bullet && isEntity2Bullet)) {
@@ -406,8 +428,10 @@ namespace GAME {
 				// Get the piece's transform
 				auto& pieceTransform = registry.get<Transform>(pieceEntity);
 
-				// Scale the piece
+				// Create an identity matrix first
 				GW::MATH::GMatrix::IdentityF(pieceTransform.matrix);
+
+				// Scale the piece - using direct matrix manipulation
 				pieceTransform.matrix.row1.x = shatters.scale;
 				pieceTransform.matrix.row2.y = shatters.scale;
 				pieceTransform.matrix.row3.z = shatters.scale;
@@ -415,6 +439,8 @@ namespace GAME {
 				// Position the piece near the original enemy
 				float offsetX = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * 0.5f;
 				float offsetZ = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * 0.5f;
+
+				// Set the position directly
 				pieceTransform.matrix.row4.x = position.x + offsetX;
 				pieceTransform.matrix.row4.y = position.y;
 				pieceTransform.matrix.row4.z = position.z + offsetZ;
