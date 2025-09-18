@@ -202,6 +202,42 @@ entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::stri
 			// Add the mesh entity to the game entity's MeshCollection
 			meshCollection.meshEntities.push_back(meshEntity);
 		}
+
+		// Find the collider for this model in the level data
+		auto levelView = registry.view<DRAW::CPULevel>();
+		if (!levelView.empty()) {
+			auto levelEntity = *levelView.begin();
+			auto& cpuLevel = registry.get<DRAW::CPULevel>(levelEntity);
+
+			// Look for the model in the level data
+			for (const auto& model : cpuLevel.lvlData.levelModels) {
+				std::string filename = model.filename;
+				size_t lastSlash = filename.find_last_of("/\&quot;);
+				if (lastSlash != std::string::npos)
+					filename = filename.substr(lastSlash + 1);
+				
+				size_t lastDot = filename.find_last_of(".");
+				if (lastDot != std::string::npos)
+					filename = filename.substr(0, lastDot);
+
+				// If this is the model we're looking for
+				if (filename == modelName) {
+					// Get the collider
+					if (model.colliderIndex < cpuLevel.lvlData.levelColliders.size()) {
+						// Set the collider in the MeshCollection
+						meshCollection.collider = cpuLevel.lvlData.levelColliders[model.colliderIndex];
+						std::cout << "Added collider to " << modelName << std::endl;
+
+						// If the model is collidable, add the Collidable tag
+						if (model.isCollidable) {
+							registry.emplace<GAME::Collidable>(gameEntity);
+							std::cout << "Added Collidable tag to " << modelName << std::endl;
+						}
+					}
+					break;
+				}
+			}
+		}
 	}
 	else
 	{
