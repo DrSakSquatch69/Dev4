@@ -47,6 +47,16 @@ namespace GAME
 
     // Handle keyboard input for toggling visibility
     void HandleVisibilityToggleInput(entt::registry& registry);
+
+    void UpdateVelocitySystem(entt::registry& registry, float deltaTime);
+
+    void CheckCollisions(entt::registry& registry);
+
+    void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entity entity2);
+
+    void RemoveDestroyedEntities(entt::registry& registry);
+
+    void HandleEnemyShattering(entt::registry& registry, entt::entity enemyEntity);
 }
 
 #endif // GAME_MANAGER_H

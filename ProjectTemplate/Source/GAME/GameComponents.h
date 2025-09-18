@@ -7,6 +7,8 @@ namespace GAME
     struct Player {};      // Tag to identify player entity
     struct Enemy {};       // Tag to identify enemy entity
     struct Bullet {};      // Tag to identify bullet entity
+    struct Collidable {};  // Tag for entities that participate in collision detection
+    struct ToDestroy {};  // Tag for entities that should be removed from the game
 
     //*** Components ***//
     struct Transform {
@@ -22,5 +24,17 @@ namespace GAME
         float cooldown;    // Current cooldown time remaining
         float maxCooldown; // Maximum cooldown time
     };
+
+    struct Velocity {
+        GW::MATH::GVECTORF direction;  // Normalized direction vector
+        float speed;                   // Speed in units per second
+    };
+
+    struct Shatters {
+        int count;         // Number of times this entity can shatter
+        int amount;        // Number of pieces to create when shattered
+        float scale;       // Scale factor for shattered pieces
+    };
+
 }// namespace GAME
 #endif // !GAME_COMPONENTS_H_
