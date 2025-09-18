@@ -59,6 +59,8 @@ void CreatePlayer(entt::registry& registry)
 		!registry.get<GAME::MeshCollection>(playerEntity).meshEntities.empty()) {
 		// Add the Player tag to the entity
 		registry.emplace<GAME::Player>(playerEntity);
+		// Add the Collidable tag to the player entity
+		registry.emplace<GAME::Collidable>(playerEntity);
 
 		// Position the player at a suitable starting position
 		auto& transform = registry.get<GAME::Transform>(playerEntity);
@@ -265,11 +267,13 @@ void GameplayBehavior(entt::registry& registry)
 		// Create player entity
 		entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
 		registry.emplace<GAME::Player>(playerEntity);
+		registry.emplace<GAME::Collidable>(playerEntity); // Add Collidable tag to player
 		std::cout << "Player entity created" << std::endl;
 
 		// Create enemy entity
 		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 		registry.emplace<GAME::Enemy>(enemyEntity);
+		registry.emplace<GAME::Collidable>(enemyEntity); // Add Collidable tag to enemy
 		std::cout << "Enemy entity created" << std::endl;
 
 		// Set initial visibility
