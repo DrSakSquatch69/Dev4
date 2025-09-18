@@ -212,7 +212,7 @@ entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::stri
 			// Look for the model in the level data
 			for (const auto& model : cpuLevel.lvlData.levelModels) {
 				std::string filename = model.filename;
-				size_t lastSlash = filename.find_last_of("/\&quot;);
+				size_t lastSlash = filename.find_last_of("/\\");
 				if (lastSlash != std::string::npos)
 					filename = filename.substr(lastSlash + 1);
 				
