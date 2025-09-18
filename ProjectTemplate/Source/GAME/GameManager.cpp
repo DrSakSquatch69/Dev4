@@ -282,8 +282,20 @@ namespace GAME {
 	}
 
 	void CheckCollisions(entt::registry& registry) {
-		// Get all entities with Transform, MeshCollection, and Collidable components
+		// Add at the beginning of the function
+		int collidableCount = 0;
+		int wallCount = 0;
+		int enemyCount = 0;
+		int bulletCount = 0;
+
 		auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
+		for (auto entity : collidableView) {
+			collidableCount++;
+			if (registry.all_of<Wall>(entity)) wallCount++;
+			if (registry.all_of<Enemy>(entity)) enemyCount++;
+			if (registry.all_of<Bullet>(entity)) bulletCount++;
+		}
+		std::cout << "Collidable entities: " << collidableCount << " (Walls: " << wallCount << ", Enemies: " << enemyCount << ", Bullets: " << bulletCount << ")" << std::endl;
 
 		// For each collidable entity
 		for (auto entity1 : collidableView) {
@@ -316,9 +328,20 @@ namespace GAME {
 
 				// Simple sphere collision detection
 				// Assuming a collision radius of 1.0 for now
-				float collisionRadiusSum = 1.0f;
+				float collisionRadiusSum = 2.0f;
 				if (distanceSquared < collisionRadiusSum * collisionRadiusSum) {
-					// Collision detected!
+					std::cout << "Collision detected between entities " << static_cast<int>(entity1) << " and " << static_cast<int>(entity2) << std::endl;
+					if (registry.all_of<Wall>(entity1) || registry.all_of<Wall>(entity2)) {
+						std::cout << "Wall collision detected!" << std::endl;
+					}
+					if (registry.all_of<Enemy>(entity1) || registry.all_of<Enemy>(entity2)) {
+						std::cout << "Enemy collision detected!" << std::endl;
+					}
+					if (registry.all_of<Bullet>(entity1) || registry.all_of<Bullet>(entity2)) {
+						std::cout << "Bullet collision detected!" << std::endl;
+					}
+
+					// Call HandleCollision
 					HandleCollision(registry, entity1, entity2);
 				}
 			}
@@ -397,9 +420,11 @@ namespace GAME {
 	}
 
 	void HandleEnemyShattering(entt::registry& registry, entt::entity enemyEntity) {
+		
 		// Get the Shatters component
 		auto& shatters = registry.get<Shatters>(enemyEntity);
-
+		std::cout << "HandleEnemyShattering called for entity " << static_cast<int>(enemyEntity) << std::endl;
+		std::cout << "Shatters count: " << shatters.count << ", amount: " << shatters.amount << ", scale: " << shatters.scale << std::endl;
 		// If the enemy can still shatter
 		if (shatters.count > 0) {
 			// Get the enemy's transform

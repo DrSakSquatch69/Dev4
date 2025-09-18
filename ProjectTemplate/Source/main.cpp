@@ -118,6 +118,16 @@ void CreateWalls(entt::registry& registry) {
 			std::cout << "Wall entity created from model: " << collectionName << std::endl;
 		}
 	}
+	int wallCount = 0;
+	for (const auto& blenderObj : cpuLevel.lvlData.blenderObjects) {
+		if (blenderObj.modelIndex >= cpuLevel.lvlData.levelModels.size()) continue;
+		const auto& model = cpuLevel.lvlData.levelModels[blenderObj.modelIndex];
+
+		if (!model.isDynamic && model.isCollidable) {
+			wallCount++;
+		}
+	}
+	std::cout << "Total wall entities created: " << wallCount << std::endl;
 }
 
 // This function will be called by the main loop to update the graphics
