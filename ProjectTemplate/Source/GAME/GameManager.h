@@ -30,6 +30,9 @@ namespace GAME
     // Update GPU instances from Transform components
     void UpdateGPUInstances(entt::registry& registry);
 
+    // Create wall entities from level data
+    void CreateWalls(entt::registry& registry);
+
     // Add an entity to a named collection
     void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName);
 

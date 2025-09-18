@@ -101,6 +101,53 @@ namespace GAME {
 		}
 	}
 
+    void CreateWalls(entt::registry& registry) {
+        // Find all static, collidable objects in the level data
+        auto levelView = registry.view<DRAW::CPULevel>();
+        if (levelView.empty()) {
+            std::cout << "No level data found" << std::endl;
+            return;
+        }
+
+        auto levelEntity = *levelView.begin();
+        auto& cpuLevel = registry.get<DRAW::CPULevel>(levelEntity);
+        
+        // Iterate through all blender objects in the level
+        for (const auto& blenderObj : cpuLevel.lvlData.blenderObjects) {
+            // Get the model for this object
+            if (blenderObj.modelIndex >= cpuLevel.lvlData.levelModels.size()) continue;
+            const auto& model = cpuLevel.lvlData.levelModels[blenderObj.modelIndex];
+            
+            // Check if this model is static and collidable (potential wall)
+            if (!model.isDynamic && model.isCollidable) {
+                // Create a game entity for this wall
+                std::string modelName = model.filename;
+                std::string collectionName = modelName;
+                size_t lastSlash = collectionName.find_last_of("/\&quot;);
+                if (lastSlash != std::string::npos)
+                    collectionName = collectionName.substr(lastSlash + 1);
+                
+                size_t lastDot = collectionName.find_last_of(".");
+                if (lastDot != std::string::npos)
+                    collectionName = collectionName.substr(0, lastDot);
+                
+                // Create a wall entity
+                entt::entity wallEntity = CreateGameEntityFromModel(registry, collectionName);
+                
+                // Add Wall and Collidable tags
+                registry.emplace<Wall>(wallEntity);
+                registry.emplace<Collidable>(wallEntity);
+                
+                // Set the wall's position based on the transform from the level data
+                auto& transform = registry.get<Transform>(wallEntity);
+                if (blenderObj.transformIndex < cpuLevel.lvlData.levelTransforms.size())
+                    transform.matrix = cpuLevel.lvlData.levelTransforms[blenderObj.transformIndex];
+                
+                std::cout << "Wall entity created from model: " << collectionName << std::endl;
+            }
+        }
+    }
+
 	// Map to store collections of entities by name
 	std::map<std::string, std::vector<entt::entity>> modelCollections;
 
