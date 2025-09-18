@@ -266,7 +266,18 @@ void GameplayBehavior(entt::registry& registry)
 		// Create enemy entity
 		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 		registry.emplace<GAME::Enemy>(enemyEntity);
-		std::cout << "Enemy entity created" << std::endl;
+
+		// Add Collidable tag to enemy
+		registry.emplace<GAME::Collidable>(enemyEntity);
+
+		// Add Shatters component to enemy
+		registry.emplace<GAME::Shatters>(enemyEntity, 2, 2, 0.5f); // Can shatter twice, into 2 pieces, at 0.5x scale
+
+		// Add random velocity to enemy
+		GW::MATH::GVECTORF direction = UTIL::GetRandomDiagonalDirection();
+		registry.emplace<GAME::Velocity>(enemyEntity, direction, 3.0f); // 3.0f is the enemy speed
+
+		std::cout << "Enemy entity created with velocity and shattering behavior" << std::endl;
 
 		// Set initial visibility
 		auto& gameManager = registry.ctx().get<GAME::GameManager>();

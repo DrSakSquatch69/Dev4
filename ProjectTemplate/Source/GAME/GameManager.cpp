@@ -407,16 +407,17 @@ namespace GAME {
 				auto& pieceTransform = registry.get<Transform>(pieceEntity);
 
 				// Scale the piece
-				GW::MATH::GMatrix::ScalingF(pieceTransform.matrix, shatters.scale, shatters.scale, shatters.scale, pieceTransform.matrix);
+				GW::MATH::GMatrix::IdentityF(pieceTransform.matrix);
+				pieceTransform.matrix.row1.x = shatters.scale;
+				pieceTransform.matrix.row2.y = shatters.scale;
+				pieceTransform.matrix.row3.z = shatters.scale;
 
 				// Position the piece near the original enemy
 				float offsetX = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * 0.5f;
 				float offsetZ = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * 0.5f;
-				GW::MATH::GMatrix::TranslationF(pieceTransform.matrix,
-					position.x + offsetX,
-					position.y,
-					position.z + offsetZ,
-					pieceTransform.matrix);
+				pieceTransform.matrix.row4.x = position.x + offsetX;
+				pieceTransform.matrix.row4.y = position.y;
+				pieceTransform.matrix.row4.z = position.z + offsetZ;
 
 				// Add a random velocity
 				GW::MATH::GVECTORF direction = UTIL::GetRandomDiagonalDirection();

@@ -72,6 +72,9 @@ namespace GAME
 				// Add the Bullet tag
 				registry.emplace<Bullet>(bulletEntity);
 
+				// Add Collidable tag to bullet
+				registry.emplace<Collidable>(bulletEntity);
+
 				// Set the bullet's position to the player's position
 				auto& bulletTransform = registry.get<Transform>(bulletEntity);
 				bulletTransform.matrix = transform.matrix; // Copy the player's transform
@@ -89,6 +92,7 @@ namespace GAME
 
 					// Add the Velocity component to the bullet
 					registry.emplace<Velocity>(bulletEntity, direction, 10.0f); // 10.0f is the bullet speed
+				}
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
 
