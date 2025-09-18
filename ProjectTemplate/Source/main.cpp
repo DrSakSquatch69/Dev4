@@ -15,7 +15,6 @@ void GraphicsBehavior(entt::registry& registry);
 void GameplayBehavior(entt::registry& registry);
 void MainLoopBehavior(entt::registry& registry);
 void CreatePlayer(entt::registry& registry);
-void CreateWalls(entt::registry& registry);
 
 // Architecture is based on components/entities pushing updates to other components/entities (via "patch" function)
 int main()
@@ -73,63 +72,6 @@ void CreatePlayer(entt::registry& registry)
 	}
 }
 
-void CreateWalls(entt::registry& registry) {
-	// Find all static, collidable objects in the level data
-	auto levelView = registry.view<DRAW::CPULevel>();
-	if (levelView.empty()) {
-		std::cout << "No level data found" << std::endl;
-		return;
-	}
-
-	auto levelEntity = *levelView.begin();
-	auto& cpuLevel = registry.get<DRAW::CPULevel>(levelEntity);
-
-	// Iterate through all blender objects in the level
-	for (const auto& blenderObj : cpuLevel.lvlData.blenderObjects) {
-		// Get the model for this object
-		if (blenderObj.modelIndex >= cpuLevel.lvlData.levelModels.size()) continue;
-		const auto& model = cpuLevel.lvlData.levelModels[blenderObj.modelIndex];
-
-		// Check if this model is static and collidable (potential wall)
-		if (!model.isDynamic && model.isCollidable) {
-			// Create a game entity for this wall
-			std::string modelName = model.filename;
-			std::string collectionName = modelName;
-			size_t lastSlash = collectionName.find_last_of("/\&quot;");
-			if (lastSlash != std::string::npos)
-				collectionName = collectionName.substr(lastSlash + 1);
-
-			size_t lastDot = collectionName.find_last_of(".");
-			if (lastDot != std::string::npos)
-				collectionName = collectionName.substr(0, lastDot);
-
-			// Create a wall entity
-			entt::entity wallEntity = GAME::CreateGameEntityFromModel(registry, collectionName);
-
-			// Add Wall and Collidable tags
-			registry.emplace<GAME::Wall>(wallEntity);
-			registry.emplace<GAME::Collidable>(wallEntity);
-
-			// Set the wall's position based on the transform from the level data
-			auto& transform = registry.get<GAME::Transform>(wallEntity);
-			if (blenderObj.transformIndex < cpuLevel.lvlData.levelTransforms.size())
-				transform.matrix = cpuLevel.lvlData.levelTransforms[blenderObj.transformIndex];
-
-			std::cout << "Wall entity created from model: " << collectionName << std::endl;
-		}
-	}
-	int wallCount = 0;
-	for (const auto& blenderObj : cpuLevel.lvlData.blenderObjects) {
-		if (blenderObj.modelIndex >= cpuLevel.lvlData.levelModels.size()) continue;
-		const auto& model = cpuLevel.lvlData.levelModels[blenderObj.modelIndex];
-
-		if (!model.isDynamic && model.isCollidable) {
-			wallCount++;
-		}
-	}
-	std::cout << "Total wall entities created: " << wallCount << std::endl;
-}
-
 // This function will be called by the main loop to update the graphics
 // It will be responsible for loading the Level, creating the VulkanRenderer, and all VulkanInstances
 void GraphicsBehavior(entt::registry& registry)
@@ -146,7 +88,6 @@ void GraphicsBehavior(entt::registry& registry)
 	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{LevelFile, ModelPath});
 
 	CreatePlayer(registry);
-	CreateWalls(registry);
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
@@ -325,18 +266,7 @@ void GameplayBehavior(entt::registry& registry)
 		// Create enemy entity
 		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 		registry.emplace<GAME::Enemy>(enemyEntity);
-
-		// Add Collidable tag to enemy
-		registry.emplace<GAME::Collidable>(enemyEntity);
-
-		// Add Shatters component to enemy
-		registry.emplace<GAME::Shatters>(enemyEntity, 2, 2, 0.5f); // Can shatter twice, into 2 pieces, at 0.5x scale
-
-		// Add random velocity to enemy
-		GW::MATH::GVECTORF direction = UTIL::GetRandomDiagonalDirection();
-		registry.emplace<GAME::Velocity>(enemyEntity, direction, 3.0f); // 3.0f is the enemy speed
-
-		std::cout << "Enemy entity created with velocity and shattering behavior" << std::endl;
+		std::cout << "Enemy entity created" << std::endl;
 
 		// Set initial visibility
 		auto& gameManager = registry.ctx().get<GAME::GameManager>();

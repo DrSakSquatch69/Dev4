@@ -27,6 +27,5 @@ namespace UTIL
 	/// Creates a normalized vector pointing in a random direction on the X/Z plane
 	GW::MATH::GVECTORF GetRandomVelocityVector();
 
-	GW::MATH::GVECTORF GetRandomDiagonalDirection();
 } // namespace UTIL
 #endif // !UTILITIES_H_

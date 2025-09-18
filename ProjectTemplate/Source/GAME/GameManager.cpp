@@ -10,28 +10,27 @@ namespace GAME {
 		std::cout << "GameManager initialized" << std::endl;
 	}
 
-	void UpdateGameManager(entt::registry& registry, float deltaTime) {
-		// Get the GameManager from the registry context
-		auto& gameManager = registry.ctx().get<GameManager>();
-		// Handle keyboard input for toggling visibility 
-		HandleVisibilityToggleInput(registry);
-		// Update entities with velocity
-		UpdateVelocitySystem(registry, deltaTime);
+    // Pseudocode plan:
+    // 1. The error is caused by calling registry.view() with no component types, which is not valid in EnTT v3+.
+    // 2. To iterate over all entities, use registry.each() instead of registry.view().
+    // 3. If you want to iterate over entities with a specific component (e.g., Player), use registry.view<Player>().
+    // 4. Fix the line in UpdateGameManager that currently reads: auto playerView = registry.view();
+    // 5. Replace it with registry.view<Player>() if you want all Player entities, or use registry.each() for all entities.
 
-		// Check for collisions
-		CheckCollisions(registry);
+    void UpdateGameManager(entt::registry& registry, float deltaTime) {
+        // Get the GameManager from the registry context
+        auto& gameManager = registry.ctx().get<GameManager>();
+        // Handle keyboard input for toggling visibility 
+        HandleVisibilityToggleInput(registry);
 
-		// Remove destroyed entities
-		RemoveDestroyedEntities(registry);
-		// Update player entities (will use the Player component's on_update method) 
-		auto playerView = registry.view<Player>();
-		for (auto entity : playerView) {
-			registry.patch<Player>(entity); // This will trigger the Player's on_update method 
-		}
-		// Update GPU instances from Transform components 
-		UpdateGPUInstances(registry);
-
-	}
+        // Update player entities (will use the Player component's on_update method) 
+        auto playerView = registry.view<Player>();
+        for (auto entity : playerView) {
+            registry.patch<Player>(entity); // This will trigger the Player's on_update method 
+        }
+        // Update GPU instances from Transform components 
+        UpdateGPUInstances(registry); 
+    }
 
 	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
 		// Get the input from the registry context
@@ -259,229 +258,6 @@ namespace GAME {
 
 		// Update the GameManager
 		UpdateGameManager(registry, static_cast<float>(deltaTime));
-	}
-
-	void UpdateVelocitySystem(entt::registry& registry, float deltaTime) {
-		// Get all entities with Transform and Velocity components
-		auto velocityView = registry.view<Transform, Velocity>();
-
-		// For each entity with Transform and Velocity
-		for (auto entity : velocityView) {
-			auto& transform = velocityView.get<Transform>(entity);
-			const auto& velocity = velocityView.get<Velocity>(entity);
-
-			// Calculate movement vector based on velocity and delta time
-			GW::MATH::GVECTORF movement;
-			movement.x = velocity.direction.x * velocity.speed * deltaTime;
-			movement.y = velocity.direction.y * velocity.speed * deltaTime;
-			movement.z = velocity.direction.z * velocity.speed * deltaTime;
-
-			// Apply movement to transform
-			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
-		}
-	}
-
-	void CheckCollisions(entt::registry& registry) {
-		// Add at the beginning of the function
-		int collidableCount = 0;
-		int wallCount = 0;
-		int enemyCount = 0;
-		int bulletCount = 0;
-
-		auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
-		for (auto entity : collidableView) {
-			collidableCount++;
-			if (registry.all_of<Wall>(entity)) wallCount++;
-			if (registry.all_of<Enemy>(entity)) enemyCount++;
-			if (registry.all_of<Bullet>(entity)) bulletCount++;
-		}
-		std::cout << "Collidable entities: " << collidableCount << " (Walls: " << wallCount << ", Enemies: " << enemyCount << ", Bullets: " << bulletCount << ")" << std::endl;
-
-		// For each collidable entity
-		for (auto entity1 : collidableView) {
-			auto& transform1 = collidableView.get<Transform>(entity1);
-
-			// Get the entity's position
-			GW::MATH::GVECTORF position1;
-			position1.x = transform1.matrix.row4.x;
-			position1.y = transform1.matrix.row4.y;
-			position1.z = transform1.matrix.row4.z;
-
-			// Check against all other collidable entities
-			for (auto entity2 : collidableView) {
-				// Skip self-collision
-				if (entity1 == entity2) continue;
-
-				auto& transform2 = collidableView.get<Transform>(entity2);
-
-				// Get the other entity's position
-				GW::MATH::GVECTORF position2;
-				position2.x = transform2.matrix.row4.x;
-				position2.y = transform2.matrix.row4.y;
-				position2.z = transform2.matrix.row4.z;
-
-				// Calculate distance between entities
-				float dx = position1.x - position2.x;
-				float dy = position1.y - position2.y;
-				float dz = position1.z - position2.z;
-				float distanceSquared = dx * dx + dy * dy + dz * dz;
-
-				// Simple sphere collision detection
-				// Assuming a collision radius of 1.0 for now
-				float collisionRadiusSum = 2.0f;
-				if (distanceSquared < collisionRadiusSum * collisionRadiusSum) {
-					std::cout << "Collision detected between entities " << static_cast<int>(entity1) << " and " << static_cast<int>(entity2) << std::endl;
-					if (registry.all_of<Wall>(entity1) || registry.all_of<Wall>(entity2)) {
-						std::cout << "Wall collision detected!" << std::endl;
-					}
-					if (registry.all_of<Enemy>(entity1) || registry.all_of<Enemy>(entity2)) {
-						std::cout << "Enemy collision detected!" << std::endl;
-					}
-					if (registry.all_of<Bullet>(entity1) || registry.all_of<Bullet>(entity2)) {
-						std::cout << "Bullet collision detected!" << std::endl;
-					}
-
-					// Call HandleCollision
-					HandleCollision(registry, entity1, entity2);
-				}
-			}
-		}
-	}
-
-	void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entity entity2) {
-		// Check if either entity is an enemy
-		bool isEntity1Enemy = registry.all_of<Enemy>(entity1);
-		bool isEntity2Enemy = registry.all_of<Enemy>(entity2);
-
-		// Check if either entity is a bullet
-		bool isEntity1Bullet = registry.all_of<Bullet>(entity1);
-		bool isEntity2Bullet = registry.all_of<Bullet>(entity2);
-		// Check if either entity is a wall
-		bool isEntity1Wall = registry.all_of<Wall>(entity1);
-		bool isEntity2Wall = registry.all_of<Wall>(entity2);
-
-		// Enemy-Enemy collision: bounce off each other
-		if (isEntity1Enemy && isEntity2Enemy) {
-			if (registry.all_of<Velocity>(entity1) && registry.all_of<Velocity>(entity2)) {
-				auto& velocity1 = registry.get<Velocity>(entity1);
-				auto& velocity2 = registry.get<Velocity>(entity2);
-
-				// Simple bounce: reverse directions
-				velocity1.direction.x = -velocity1.direction.x;
-				velocity1.direction.z = -velocity1.direction.z;
-
-				velocity2.direction.x = -velocity2.direction.x;
-				velocity2.direction.z = -velocity2.direction.z;
-			}
-		}
-		// Enemy-Wall collision: bounce the enemy off the wall
-		else if ((isEntity1Enemy && isEntity2Wall) || (isEntity1Wall && isEntity2Enemy)) {
-			entt::entity enemyEntity = isEntity1Enemy ? entity1 : entity2;
-
-			if (registry.all_of<Velocity>(enemyEntity)) {
-				auto& velocity = registry.get<Velocity>(enemyEntity);
-
-				// Simple bounce: reverse direction
-				velocity.direction.x = -velocity.direction.x;
-				velocity.direction.z = -velocity.direction.z;
-			}
-		}
-		// Bullet-Wall collision: destroy the bullet
-		else if ((isEntity1Bullet && isEntity2Wall) || (isEntity1Wall && isEntity2Bullet)) {
-			entt::entity bulletEntity = isEntity1Bullet ? entity1 : entity2;
-
-			// Mark the bullet for destruction
-			registry.emplace<ToDestroy>(bulletEntity);
-		}
-		// Enemy-Bullet collision: destroy bullet, handle enemy shattering
-		else if ((isEntity1Enemy && isEntity2Bullet) || (isEntity1Bullet && isEntity2Bullet)) {
-			entt::entity enemyEntity = isEntity1Enemy ? entity1 : entity2;
-			entt::entity bulletEntity = isEntity1Bullet ? entity1 : entity2;
-
-			// Mark the bullet for destruction
-			registry.emplace<ToDestroy>(bulletEntity);
-
-			// Handle enemy shattering (will be implemented in Part 4)
-			if (registry.all_of<Shatters>(enemyEntity)) {
-				HandleEnemyShattering(registry, enemyEntity);
-			}
-		}
-		// For other collisions (e.g., with walls), we could add more logic here
-	}
-
-	void RemoveDestroyedEntities(entt::registry& registry) {
-		// Get all entities marked for destruction
-		auto destroyView = registry.view<ToDestroy>();
-
-		// Destroy each entity
-		for (auto entity : destroyView) {
-			registry.destroy(entity);
-		}
-	}
-
-	void HandleEnemyShattering(entt::registry& registry, entt::entity enemyEntity) {
-		
-		// Get the Shatters component
-		auto& shatters = registry.get<Shatters>(enemyEntity);
-		std::cout << "HandleEnemyShattering called for entity " << static_cast<int>(enemyEntity) << std::endl;
-		std::cout << "Shatters count: " << shatters.count << ", amount: " << shatters.amount << ", scale: " << shatters.scale << std::endl;
-		// If the enemy can still shatter
-		if (shatters.count > 0) {
-			// Get the enemy's transform
-			auto& enemyTransform = registry.get<Transform>(enemyEntity);
-
-			// Get the enemy's position
-			GW::MATH::GVECTORF position;
-			position.x = enemyTransform.matrix.row4.x;
-			position.y = enemyTransform.matrix.row4.y;
-			position.z = enemyTransform.matrix.row4.z;
-
-			// Create smaller enemy pieces
-			for (int i = 0; i < shatters.amount; i++) {
-				// Create a new enemy entity
-				entt::entity pieceEntity = CreateGameEntityFromModel(registry, "Enemy");
-
-				// Add the Enemy tag
-				registry.emplace<Enemy>(pieceEntity);
-
-				// Add a Collidable tag
-				registry.emplace<Collidable>(pieceEntity);
-
-				// Add a Shatters component with reduced count
-				registry.emplace<Shatters>(pieceEntity, shatters.count - 1, shatters.amount, shatters.scale);
-
-				// Get the piece's transform
-				auto& pieceTransform = registry.get<Transform>(pieceEntity);
-
-				// Create an identity matrix first
-				GW::MATH::GMatrix::IdentityF(pieceTransform.matrix);
-
-				// Scale the piece - using direct matrix manipulation
-				pieceTransform.matrix.row1.x = shatters.scale;
-				pieceTransform.matrix.row2.y = shatters.scale;
-				pieceTransform.matrix.row3.z = shatters.scale;
-
-				// Position the piece near the original enemy
-				float offsetX = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * 0.5f;
-				float offsetZ = (static_cast<float>(rand()) / RAND_MAX * 2.0f - 1.0f) * 0.5f;
-
-				// Set the position directly
-				pieceTransform.matrix.row4.x = position.x + offsetX;
-				pieceTransform.matrix.row4.y = position.y;
-				pieceTransform.matrix.row4.z = position.z + offsetZ;
-
-				// Add a random velocity
-				GW::MATH::GVECTORF direction = UTIL::GetRandomDiagonalDirection();
-				registry.emplace<Velocity>(pieceEntity, direction, 5.0f); // Faster than the original enemy
-			}
-
-			// Mark the original enemy for destruction
-			registry.emplace<ToDestroy>(enemyEntity);
-		}
-		else {
-			// If the enemy can't shatter anymore, just mark it for destruction
-			registry.emplace<ToDestroy>(enemyEntity);
-		}
 	}
 
 	// Connect the GameManager logic to the registry

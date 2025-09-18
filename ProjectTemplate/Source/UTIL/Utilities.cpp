@@ -19,24 +19,4 @@ namespace UTIL
 
 		return vel;
 	}
-
-    GW::MATH::GVECTORF GetRandomDiagonalDirection() {
-        GW::MATH::GVECTORF direction;
-
-        // Generate random x and z components that are not too small
-        direction.x = (rand() % 2 == 0) ? -1.0f : 1.0f;
-        direction.z = (rand() % 2 == 0) ? -1.0f : 1.0f;
-
-        // Add some randomness to the direction
-        direction.x += (static_cast<float>(rand()) / RAND_MAX * 0.5f - 0.25f);
-        direction.z += (static_cast<float>(rand()) / RAND_MAX * 0.5f - 0.25f);
-
-        // Normalize the direction
-        float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
-        direction.x /= length;
-        direction.y = 0.0f; // Keep movement on the XZ plane
-        direction.z /= length;
-
-        return direction;
-    }
 } // namespace UTIL
