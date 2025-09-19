@@ -28,6 +28,10 @@ namespace GAME {
         for (auto entity : playerView) {
             registry.patch<Player>(entity); // This will trigger the Player's on_update method 
         }
+        
+        // Check for collisions between entities
+        CheckCollisions(registry);
+        
         // Update GPU instances from Transform components 
         UpdateGPUInstances(registry); 
     }
@@ -142,6 +146,24 @@ namespace GAME {
                 auto& transform = registry.get<Transform>(wallEntity);
                 if (blenderObj.transformIndex < cpuLevel.lvlData.levelTransforms.size())
                     transform.matrix = cpuLevel.lvlData.levelTransforms[blenderObj.transformIndex];
+                
+                // Set the wall's collider from the level data
+                auto& meshCollection = registry.get<MeshCollection>(wallEntity);
+                if (model.colliderIndex < cpuLevel.lvlData.levelColliders.size()) {
+                    // Get the collider from the level data
+                    meshCollection.collider = cpuLevel.lvlData.levelColliders[model.colliderIndex];
+                    
+                    // Debug output for collider
+                    std::cout << "Wall collider set from level data, index: " << model.colliderIndex 
+                              << ", center: (" << meshCollection.collider.center.x 
+                              << ", " << meshCollection.collider.center.y 
+                              << ", " << meshCollection.collider.center.z << ")"
+                              << ", extents: (" << meshCollection.collider.extents.x 
+                              << ", " << meshCollection.collider.extents.y 
+                              << ", " << meshCollection.collider.extents.z << ")" << std::endl;
+                } else {
+                    std::cout << "Warning: No collider found for wall model at index " << model.colliderIndex << std::endl;
+                }
                 
                 std::cout << "Wall entity created from model: " << collectionName << std::endl;
             }
@@ -316,4 +338,178 @@ namespace GAME {
 		registry.on_update<GameManager>().connect<&on_update>();
 	}
 
-} // namespace GAME
+} // namespace GAME// Collision detection system for the game
+// This will be included in GameManager.cpp
+
+// Check for collisions between collidable entities
+void CheckCollisions(entt::registry& registry) {
+    // Get all entities with Transform, MeshCollection, and Collidable components
+    auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
+
+    // For each collidable entity
+    for (auto entity1 : collidableView) {
+        // For each other collidable entity
+        for (auto entity2 : collidableView) {
+            // Skip self-collision
+            if (entity1 == entity2) continue;
+
+            // Check if the entities are colliding
+            if (AreEntitiesColliding(registry, entity1, entity2)) {
+                // Handle the collision
+                HandleCollision(registry, entity1, entity2);
+            }
+        }
+    }
+}
+
+// Check if two entities are colliding
+bool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::entity entity2) {
+    // Get the transforms and mesh collections for both entities
+    auto& transform1 = registry.get<Transform>(entity1);
+    auto& meshCollection1 = registry.get<MeshCollection>(entity1);
+    auto& transform2 = registry.get<Transform>(entity2);
+    auto& meshCollection2 = registry.get<MeshCollection>(entity2);
+
+    // Get the positions from the transforms
+    GW::MATH::GVECTORF pos1, pos2;
+    GW::MATH::GMatrix::GetTranslationF(transform1.matrix, pos1);
+    GW::MATH::GMatrix::GetTranslationF(transform2.matrix, pos2);
+
+    // Check if either entity is a wall
+    bool isWall1 = registry.all_of<Wall>(entity1);
+    bool isWall2 = registry.all_of<Wall>(entity2);
+    
+    // If we're dealing with a wall, use the wall's collider
+    if (isWall1 || isWall2) {
+        // Determine which entity is the wall and which is the other entity
+        auto wallEntity = isWall1 ? entity1 : entity2;
+        auto otherEntity = isWall1 ? entity2 : entity1;
+        auto& wallTransform = isWall1 ? transform1 : transform2;
+        auto& wallMeshCollection = isWall1 ? meshCollection1 : meshCollection2;
+        auto& otherPos = isWall1 ? pos2 : pos1;
+        
+        // Get wall position
+        GW::MATH::GVECTORF wallPos;
+        GW::MATH::GMatrix::GetTranslationF(wallTransform.matrix, wallPos);
+        
+        // Calculate distance from other entity to wall center
+        float dx = otherPos.x - wallPos.x;
+        float dy = otherPos.y - wallPos.y;
+        float dz = otherPos.z - wallPos.z;
+        
+        // Get the wall's extents from its collider
+        float wallExtentX = wallMeshCollection.collider.extents.x;
+        float wallExtentY = wallMeshCollection.collider.extents.y;
+        float wallExtentZ = wallMeshCollection.collider.extents.z;
+        
+        // Check if the other entity is within the wall's boundaries
+        bool withinX = std::abs(dx) < wallExtentX + 1.0f; // Add 1.0f for collision radius
+        bool withinY = std::abs(dy) < wallExtentY + 1.0f;
+        bool withinZ = std::abs(dz) < wallExtentZ + 1.0f;
+        
+        return withinX && withinY && withinZ;
+    }
+    else {
+        // For non-wall collisions, use a simple distance-based approach
+        float dx = pos2.x - pos1.x;
+        float dy = pos2.y - pos1.y;
+        float dz = pos2.z - pos1.z;
+        float distanceSquared = dx * dx + dy * dy + dz * dz;
+        
+        // Check if distance is less than twice the collision radius
+        float collisionDistanceSquared = 4.0f; // 2.0f radius squared
+        
+        return distanceSquared < collisionDistanceSquared;
+    }
+}
+
+// Handle collision between two entities
+void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entity entity2) {
+    // Check entity types and handle collisions accordingly
+    bool isPlayer1 = registry.all_of<Player>(entity1);
+    bool isPlayer2 = registry.all_of<Player>(entity2);
+    bool isEnemy1 = registry.all_of<Enemy>(entity1);
+    bool isEnemy2 = registry.all_of<Enemy>(entity2);
+    bool isBullet1 = registry.all_of<Bullet>(entity1);
+    bool isBullet2 = registry.all_of<Bullet>(entity2);
+    bool isWall1 = registry.all_of<Wall>(entity1);
+    bool isWall2 = registry.all_of<Wall>(entity2);
+
+    // Player-Wall collision: prevent player from moving through walls
+    if ((isPlayer1 && isWall2) || (isPlayer2 && isWall1)) {
+        auto playerEntity = isPlayer1 ? entity1 : entity2;
+        auto wallEntity = isPlayer1 ? entity2 : entity1;
+        
+        // Get the player's transform
+        auto& playerTransform = registry.get<Transform>(playerEntity);
+        auto& wallTransform = registry.get<Transform>(wallEntity);
+        
+        // Get positions
+        GW::MATH::GVECTORF playerPos, wallPos;
+        GW::MATH::GMatrix::GetTranslationF(playerTransform.matrix, playerPos);
+        GW::MATH::GMatrix::GetTranslationF(wallTransform.matrix, wallPos);
+        
+        // Calculate direction from wall to player
+        GW::MATH::GVECTORF direction = {
+            playerPos.x - wallPos.x,
+            0.0f, // No vertical component to avoid pushing player under floor
+            playerPos.z - wallPos.z
+        };
+        
+        // Normalize the direction vector (avoid division by zero)
+        float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
+        if (length > 0.001f) {
+            direction.x /= length;
+            direction.z /= length;
+        } else {
+            direction = { 1.0f, 0.0f, 0.0f }; // Default direction if too close
+        }
+        
+        // Move the player away from the wall
+        GW::MATH::GVECTORF pushOut = {
+            direction.x * 0.5f,
+            0.0f, // No vertical push
+            direction.z * 0.5f
+        };
+        
+        GW::MATH::GMatrix::TranslateGlobalF(playerTransform.matrix, pushOut, playerTransform.matrix);
+        
+        std::cout << "Player collided with wall" << std::endl;
+    }
+
+    // Enemy-Wall collision: make enemy bounce off wall
+    if ((isEnemy1 && isWall2) || (isEnemy2 && isWall1)) {
+        auto enemyEntity = isEnemy1 ? entity1 : entity2;
+        
+        // Get the enemy's transform
+        auto& enemyTransform = registry.get<Transform>(enemyEntity);
+        
+        // Simple bounce: move the enemy back slightly
+        GW::MATH::GVECTORF moveBack = { -0.1f, 0.0f, -0.1f };
+        GW::MATH::GMatrix::TranslateGlobalF(enemyTransform.matrix, moveBack, enemyTransform.matrix);
+        
+        std::cout << "Enemy collided with wall" << std::endl;
+    }
+
+    // Bullet-Wall collision: destroy bullet
+    if ((isBullet1 && isWall2) || (isBullet2 && isWall1)) {
+        auto bulletEntity = isBullet1 ? entity1 : entity2;
+        
+        // Destroy the bullet
+        registry.destroy(bulletEntity);
+        
+        std::cout << "Bullet collided with wall and was destroyed" << std::endl;
+    }
+
+    // Bullet-Enemy collision: destroy both
+    if ((isBullet1 && isEnemy2) || (isBullet2 && isEnemy1)) {
+        auto bulletEntity = isBullet1 ? entity1 : entity2;
+        auto enemyEntity = isEnemy1 ? entity1 : entity2;
+        
+        // Destroy both entities
+        registry.destroy(bulletEntity);
+        registry.destroy(enemyEntity);
+        
+        std::cout << "Bullet hit enemy! Both were destroyed" << std::endl;
+    }
+}

@@ -33,6 +33,15 @@ namespace GAME
     // Create wall entities from level data
     void CreateWalls(entt::registry& registry);
 
+    // Check for collisions between collidable entities
+    void CheckCollisions(entt::registry& registry);
+
+    // Handle collision between two entities
+    void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entity entity2);
+
+    // Check if two entities are colliding
+    bool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::entity entity2);
+
     // Add an entity to a named collection
     void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName);
 
