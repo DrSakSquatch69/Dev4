@@ -181,7 +181,7 @@ namespace GAME {
                     for (int i = 0; i < 4; i++) {
                         std::cout << "  [";
                         for (int j = 0; j < 4; j++) {
-                            std::cout << transform.matrix.data[i][j];
+                            std::cout << transform.matrix.data[i * 4 + j];
                             if (j < 3) std::cout << ", ";
                         }
                         std::cout << "]" << std::endl;
