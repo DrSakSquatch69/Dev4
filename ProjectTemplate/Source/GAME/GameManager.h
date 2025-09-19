@@ -32,6 +32,9 @@ namespace GAME
 
     // Create wall entities from level data
     void CreateWalls(entt::registry& registry);
+    
+    // Adjust wall collider based on position
+    void AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName);
 
     // Check for collisions between collidable entities
     void CheckCollisions(entt::registry& registry);

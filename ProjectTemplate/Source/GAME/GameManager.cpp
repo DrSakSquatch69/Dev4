@@ -153,6 +153,9 @@ namespace GAME {
                     // Get the collider from the level data
                     meshCollection.collider = cpuLevel.lvlData.levelColliders[model.colliderIndex];
                     
+                    // Override colliders with manual settings based on wall position
+                    AdjustWallCollider(registry, wallEntity, transform.matrix, collectionName);
+                    
                     // Get wall position from transform
                     GW::MATH::GVECTORF wallPos;
                     GW::MATH::GMatrix::GetTranslationF(transform.matrix, wallPos);
@@ -166,6 +169,23 @@ namespace GAME {
                               << ", extents: (" << meshCollection.collider.extent.x 
                               << ", " << meshCollection.collider.extent.y 
                               << ", " << meshCollection.collider.extent.z << ")" << std::endl;
+                    
+                    // Debug output for wall transform
+                    GW::MATH::GVECTORF scale;
+                    GW::MATH::GMatrix::GetScaleF(transform.matrix, scale);
+                    std::cout << "WALL TRANSFORM: " << collectionName 
+                              << " scale: (" << scale.x << ", " << scale.y << ", " << scale.z << ")" << std::endl;
+                    
+                    // Print the full transform matrix for debugging
+                    std::cout << "WALL MATRIX: " << collectionName << std::endl;
+                    for (int i = 0; i < 4; i++) {
+                        std::cout << "  [";
+                        for (int j = 0; j < 4; j++) {
+                            std::cout << transform.matrix.data[i][j];
+                            if (j < 3) std::cout << ", ";
+                        }
+                        std::cout << "]" << std::endl;
+                    }
                     
                     // Calculate world-space collider boundaries
                     float minX = wallPos.x + meshCollection.collider.center.x - meshCollection.collider.extent.x;
@@ -419,14 +439,17 @@ namespace GAME {
             GW::MATH::GVECTORF wallScale;
             GW::MATH::GMatrix::GetScaleF(wallTransform.matrix, wallScale);
             
-            float wallExtentX = wallMeshCollection.collider.extent.x * wallScale.x;
-            float wallExtentY = wallMeshCollection.collider.extent.y * wallScale.y;
-            float wallExtentZ = wallMeshCollection.collider.extent.z * wallScale.z;
+            // Apply a multiplier to make the colliders larger
+            const float COLLIDER_SCALE_MULTIPLIER = 2.0f;
+            
+            float wallExtentX = wallMeshCollection.collider.extent.x * wallScale.x * COLLIDER_SCALE_MULTIPLIER;
+            float wallExtentY = wallMeshCollection.collider.extent.y * wallScale.y * COLLIDER_SCALE_MULTIPLIER;
+            float wallExtentZ = wallMeshCollection.collider.extent.z * wallScale.z * COLLIDER_SCALE_MULTIPLIER;
             
             // Make sure extents are not too small
-            wallExtentX = std::max(wallExtentX, 1.0f);
-            wallExtentY = std::max(wallExtentY, 1.0f);
-            wallExtentZ = std::max(wallExtentZ, 1.0f);
+            wallExtentX = std::max(wallExtentX, 2.0f);
+            wallExtentY = std::max(wallExtentY, 2.0f);
+            wallExtentZ = std::max(wallExtentZ, 2.0f);
             
             // Calculate distance from other entity to world collider center
             float dx = otherPos.x - worldColliderCenter.x;
@@ -571,4 +594,38 @@ namespace GAME {
         }
     }
 
-} // namespace GAME
+} // namespace GAME// Adjust wall collider based on position
+    void GAME::AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName) {
+        // Get the wall's position
+        GW::MATH::GVECTORF wallPos;
+        GW::MATH::GMatrix::GetTranslationF(transform, wallPos);
+        
+        // Get the wall's mesh collection
+        auto& meshCollection = registry.get<MeshCollection>(wallEntity);
+        
+        // Determine which wall this is based on position
+        // Left wall (negative X)
+        if (wallPos.x < -15.0f) {
+            std::cout << "ADJUSTING LEFT WALL COLLIDER" << std::endl;
+            meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+            meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
+        }
+        // Right wall (positive X)
+        else if (wallPos.x > 15.0f) {
+            std::cout << "ADJUSTING RIGHT WALL COLLIDER" << std::endl;
+            meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+            meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
+        }
+        // Top wall (positive Z)
+        else if (wallPos.z > 15.0f) {
+            std::cout << "ADJUSTING TOP WALL COLLIDER" << std::endl;
+            meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+            meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
+        }
+        // Bottom wall (negative Z)
+        else if (wallPos.z < -15.0f) {
+            std::cout << "ADJUSTING BOTTOM WALL COLLIDER" << std::endl;
+            meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+            meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
+        }
+    }
