@@ -637,4 +637,4 @@ namespace GAME {
 				meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
 			}
 		}
-	} // namespace GAME// Adjust wall collider based on position
+	} // namespace GAME
