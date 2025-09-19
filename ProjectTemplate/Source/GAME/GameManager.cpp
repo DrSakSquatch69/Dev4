@@ -1,6 +1,7 @@
 #include "GameManager.h"
 #include "../CCL.h"
 #include "../UTIL/Utilities.h"
+using namespace GAME;
 
 namespace GAME {
 
@@ -9,13 +10,6 @@ namespace GAME {
 		registry.ctx().emplace<GameManager>();
 		std::cout << "GameManager initialized" << std::endl;
 	}
-
-	// Pseudocode plan:
-	// 1. The error is caused by calling registry.view() with no component types, which is not valid in EnTT v3+.
-	// 2. To iterate over all entities, use registry.each() instead of registry.view().
-	// 3. If you want to iterate over entities with a specific component (e.g., Player), use registry.view<Player>().
-	// 4. Fix the line in UpdateGameManager that currently reads: auto playerView = registry.view();
-	// 5. Replace it with registry.view<Player>() if you want all Player entities, or use registry.each() for all entities.
 
 	void UpdateGameManager(entt::registry& registry, float deltaTime) {
 		// Get the GameManager from the registry context
@@ -228,14 +222,14 @@ namespace GAME {
 			entt::entity gameEntity = registry.create();
 
 			// Add a MeshCollection component
-			registry.emplace<MeshCollection>(gameEntity);
+			registry.emplace<GAME::MeshCollection>(gameEntity);
 
 			// Add a Transform component with identity matrix initially
-			auto& transform = registry.emplace<Transform>(gameEntity);
+			auto& transform = registry.emplace<GAME::Transform>(gameEntity);
 			GW::MATH::GMatrix::IdentityF(transform.matrix);
 
 			// Get entities from the model collection
-			auto modelEntities = GetEntitiesFromCollection(registry, modelName);
+			auto modelEntities = GAME::GetEntitiesFromCollection(registry, modelName);
 			std::cout << "Model collection " << modelName << " has " << modelEntities.size() << " entities" << std::endl;
 
 			// For each entity in the model collection
@@ -259,7 +253,7 @@ namespace GAME {
 				}
 
 				// Add the mesh entity to the game entity's MeshCollection
-				auto& meshCollection = registry.get<MeshCollection>(gameEntity);
+				auto& meshCollection = registry.get<GAME::MeshCollection>(gameEntity);
 				meshCollection.meshEntities.push_back(meshEntity);
 			}
 
@@ -269,11 +263,11 @@ namespace GAME {
 		// Toggle visibility of an entity
 		void ToggleEntityVisibility(entt::registry & registry, entt::entity entity) {
 			// Get the mesh collection for this entity
-			if (!registry.all_of<MeshCollection>(entity)) {
+			if (!registry.all_of<GAME::MeshCollection>(entity)) {
 				return;
 			}
 
-			auto& meshCollection = registry.get<MeshCollection>(entity);
+			auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
 
 			// Toggle DoNotRender tag for each mesh entity
 			for (auto meshEntity : meshCollection.meshEntities) {
@@ -289,11 +283,11 @@ namespace GAME {
 		// Set visibility of an entity
 		void SetEntityVisibility(entt::registry & registry, entt::entity entity, bool visible) {
 			// Get the mesh collection for this entity
-			if (!registry.all_of<MeshCollection>(entity)) {
+			if (!registry.all_of<GAME::MeshCollection>(entity)) {
 				return;
 			}
 
-			auto& meshCollection = registry.get<MeshCollection>(entity);
+			auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
 
 			// Set DoNotRender tag for each mesh entity based on visibility
 			for (auto meshEntity : meshCollection.meshEntities) {
@@ -314,7 +308,7 @@ namespace GAME {
 		void HandleVisibilityToggleInput(entt::registry & registry) {
 			// Get the input from the registry context
 			auto& input = registry.ctx().get<UTIL::Input>();
-			auto& gameManager = registry.ctx().get<GameManager>();
+			auto& gameManager = registry.ctx().get<GAME::GameManager>();
 
 			// Check for P key press to toggle player visibility
 			float pKey = 0.0f;
@@ -326,10 +320,10 @@ namespace GAME {
 				gameManager.playerVisible = !gameManager.playerVisible;
 
 				// Find the player entity
-				auto playerView = registry.view<Player>();
+				auto playerView = registry.view<GAME::Player>();
 				if (playerView.begin() != playerView.end()) {
 					auto playerEntity = *playerView.begin();
-					SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
+					GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
 					std::cout << "Player visibility toggled: " << (gameManager.playerVisible ? "visible" : "hidden") << std::endl;
 				}
 			}
@@ -347,10 +341,10 @@ namespace GAME {
 				gameManager.enemyVisible = !gameManager.enemyVisible;
 
 				// Find the enemy entity
-				auto enemyView = registry.view<Enemy>();
+				auto enemyView = registry.view<GAME::Enemy>();
 				if (enemyView.begin() != enemyView.end()) {
 					auto enemyEntity = *enemyView.begin();
-					SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
+					GAME::SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
 					std::cout << "Enemy visibility toggled: " << (gameManager.enemyVisible ? "visible" : "hidden") << std::endl;
 				}
 			}
@@ -376,28 +370,7 @@ namespace GAME {
 			// Connect the on_update method
 			registry.on_update<GameManager>().connect<&on_update>();
 		}
-
-		// Check for collisions between collidable entities
-		void CheckCollisions(entt::registry & registry) {
-			// Get all entities with Transform, MeshCollection, and Collidable components
-			auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
-
-			// For each collidable entity
-			for (auto entity1 : collidableView) {
-				// For each other collidable entity
-				for (auto entity2 : collidableView) {
-					// Skip self-collision
-					if (entity1 == entity2) continue;
-
-					// Check if the entities are colliding
-					if (AreEntitiesColliding(registry, entity1, entity2)) {
-						// Handle the collision
-						HandleCollision(registry, entity1, entity2);
-					}
-				}
-			}
-		}
-
+		
 		// Check if two entities are colliding
 		bool AreEntitiesColliding(entt::registry & registry, entt::entity entity1, entt::entity entity2) {
 			// Get the transforms and mesh collections for both entities
@@ -597,7 +570,8 @@ namespace GAME {
 			}
 		}
 
-		void GAME::AdjustWallCollider(entt::registry & registry, entt::entity wallEntity, const GW::MATH::GMATRIXF & transform, const std::string & wallName) {
+		void GAME::AdjustWallCollider(entt::registry & registry, entt::entity wallEntity, const GW::MATH::GMATRIXF & transform, const std::string & wallName) 
+		{
 			// Get the wall's position
 			GW::MATH::GVECTORF wallPos;
 			GW::MATH::GMatrix::GetTranslationF(transform, wallPos);
@@ -631,4 +605,27 @@ namespace GAME {
 				meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
 			}
 		}
-	} // namespace GAME
+	
+
+		// Check for collisions between collidable entities
+		void CheckCollisions(entt::registry & registry) {
+			// Get all entities with Transform, MeshCollection, and Collidable components
+			auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
+
+			// For each collidable entity
+			for (auto entity1 : collidableView) {
+				// For each other collidable entity
+				for (auto entity2 : collidableView) {
+					// Skip self-collision
+					if (entity1 == entity2) continue;
+
+					// Check if the entities are colliding
+					if (GAME::AreEntitiesColliding(registry, entity1, entity2)) {
+						// Handle the collision
+						GAME::HandleCollision(registry, entity1, entity2);
+					}
+				}
+			}
+		}
+
+} // namespace GAME
