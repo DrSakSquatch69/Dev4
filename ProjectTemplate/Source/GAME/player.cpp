@@ -71,6 +71,9 @@ namespace GAME
 
 				// Add the Bullet tag
 				registry.emplace<Bullet>(bulletEntity);
+				
+				// Add the Collidable tag to make bullets participate in collision detection
+				registry.emplace<Collidable>(bulletEntity);
 
 				// Set the bullet's position to the player's position
 				auto& bulletTransform = registry.get<Transform>(bulletEntity);

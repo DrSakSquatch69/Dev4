@@ -30,6 +30,21 @@ namespace GAME
     // Update GPU instances from Transform components
     void UpdateGPUInstances(entt::registry& registry);
 
+    // Create wall entities from level data
+    void CreateWalls(entt::registry& registry);
+    
+    // Adjust wall collider based on position
+    void AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName);
+
+    // Check for collisions between collidable entities
+    void CheckCollisions(entt::registry& registry);
+
+    // Handle collision between two entities
+    void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entity entity2);
+
+    // Check if two entities are colliding
+    bool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::entity entity2);
+
     // Add an entity to a named collection
     void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName);
 
