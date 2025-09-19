@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #include "GameManager.h"
 #include "../CCL.h"
 #include "../UTIL/Utilities.h"
