@@ -181,16 +181,8 @@ namespace GAME {
 					for (int i = 0; i < 4; i++) {
 						std::cout << "  [";
 						for (int j = 0; j < 4; j++) {
-							// Print the full transform matrix for debugging
-							std::cout << "WALL MATRIX: " << collectionName << std::endl;
-							for (int i = 0; i < 4; i++) {
-								std::cout << "  [";
-								for (int j = 0; j < 4; j++) {
-									std::cout << transform.matrix.data[i * 4 + j];
-									if (j < 3) std::cout << ", ";
-								}
-								std::cout << "]" << std::endl;
-							}
+
+							std::cout << transform.matrix.data[i * 4 + j];
 
 							// Calculate world-space collider boundaries
 							float minX = wallPos.x + meshCollection.collider.center.x - meshCollection.collider.extent.x;
@@ -205,6 +197,8 @@ namespace GAME {
 								<< " Y: [" << minY << ", " << maxY << "]"
 								<< " Z: [" << minZ << ", " << maxZ << "]" << std::endl;
 						}
+					}
+				}
 				else {
 					std::cout << "Warning: No collider found for wall model at index " << model.colliderIndex << std::endl;
 				}
