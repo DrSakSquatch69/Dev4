@@ -127,7 +127,7 @@ namespace GAME {
                 // Create a game entity for this wall
                 std::string modelName = model.filename;
                 std::string collectionName = modelName;
-                size_t lastSlash = collectionName.find_last_of("/\&quot;);
+                size_t lastSlash = collectionName.find_last_of("/\\");
                 if (lastSlash != std::string::npos)
                     collectionName = collectionName.substr(lastSlash + 1);
                 
@@ -447,9 +447,9 @@ namespace GAME {
             float wallExtentZ = wallMeshCollection.collider.extent.z * wallScale.z * COLLIDER_SCALE_MULTIPLIER;
             
             // Make sure extents are not too small
-            wallExtentX = std::max(wallExtentX, 2.0f);
-            wallExtentY = std::max(wallExtentY, 2.0f);
-            wallExtentZ = std::max(wallExtentZ, 2.0f);
+            wallExtentX = std::max<float>(wallExtentX, 2.0f);
+            wallExtentY = std::max<float>(wallExtentY, 2.0f);
+            wallExtentZ = std::max<float>(wallExtentZ, 2.0f);
             
             // Calculate distance from other entity to world collider center
             float dx = otherPos.x - worldColliderCenter.x;
@@ -594,7 +594,6 @@ namespace GAME {
         }
     }
 
-} // namespace GAME// Adjust wall collider based on position
     void GAME::AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName) {
         // Get the wall's position
         GW::MATH::GVECTORF wallPos;
@@ -629,3 +628,4 @@ namespace GAME {
             meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
         }
     }
+} // namespace GAME// Adjust wall collider based on position
