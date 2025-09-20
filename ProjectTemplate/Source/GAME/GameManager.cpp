@@ -402,260 +402,176 @@ namespace GAME {
 	}
 
 	// Check if two entities are colliding
-	bool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::entity entity2) {
-		// Get the transforms and mesh collections for both entities
-		auto& transform1 = registry.get<Transform>(entity1);
-		auto& meshCollection1 = registry.get<MeshCollection>(entity1);
-		auto& transform2 = registry.get<Transform>(entity2);
-		auto& meshCollection2 = registry.get<MeshCollection>(entity2);
 
-		// Get the positions from the transforms
-		GW::MATH::GVECTORF pos1, pos2;
-		GW::MATH::GMatrix::GetTranslationF(transform1.matrix, pos1);
-		GW::MATH::GMatrix::GetTranslationF(transform2.matrix, pos2);
+void GAME::AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName)
+{
+    // Get the wall's position
+    GW::MATH::GVECTORF wallPos;
+    GW::MATH::GMatrix::GetTranslationF(transform, wallPos);
 
-		// Check if either entity is a wall
-		bool isWall1 = registry.all_of<Wall>(entity1);
-		bool isWall2 = registry.all_of<Wall>(entity2);
+    // Get the wall's scale
+    GW::MATH::GVECTORF wallScale;
+    GW::MATH::GMatrix::GetScaleF(transform, wallScale);
 
-		// If we're dealing with a wall, use the wall's collider
-		if (isWall1 || isWall2) {
-			// Determine which entity is the wall and which is the other entity
-			auto wallEntity = isWall1 ? entity1 : entity2;
-			auto otherEntity = isWall1 ? entity2 : entity1;
-			auto& wallTransform = isWall1 ? transform1 : transform2;
-			auto& wallMeshCollection = isWall1 ? meshCollection1 : meshCollection2;
-			auto& otherPos = isWall1 ? pos2 : pos1;
+    // Get the wall's mesh collection
+    auto& meshCollection = registry.get<MeshCollection>(wallEntity);
 
-			// Get wall position
-			GW::MATH::GVECTORF wallPos;
-			GW::MATH::GMatrix::GetTranslationF(wallTransform.matrix, wallPos);
+    // Debug output before adjustment
+    std::cout << "WALL BEFORE ADJUSTMENT: " << wallName
+              << " at position (" << wallPos.x << ", " << wallPos.y << ", " << wallPos.z << ")"
+              << ", scale: (" << wallScale.x << ", " << wallScale.y << ", " << wallScale.z << ")"
+              << ", collider center: (" << meshCollection.collider.center.x
+              << ", " << meshCollection.collider.center.y
+              << ", " << meshCollection.collider.center.z << ")"
+              << ", extents: (" << meshCollection.collider.extent.x
+              << ", " << meshCollection.collider.extent.y
+              << ", " << meshCollection.collider.extent.z << ")" << std::endl;
 
-			// Get the wall's collider center and transform it to world space
-			GW::MATH::GVECTORF colliderCenter = wallMeshCollection.collider.center;
-			GW::MATH::GVECTORF worldColliderCenter = {
-				wallPos.x + colliderCenter.x,
-				wallPos.y + colliderCenter.y,
-				wallPos.z + colliderCenter.z
-			};
+    // Determine which wall this is based on position
+    // Left wall (negative X)
+    if (wallPos.x < -15.0f) {
+        std::cout << "ADJUSTING LEFT WALL COLLIDER" << std::endl;
+        
+        // Set the collider center to match the wall's center
+        meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+        
+        // Set the collider extents based on the wall's dimensions
+        // For a left wall, we want a thin box along the Z axis
+        // The extent is half the size of the box in each dimension
+        meshCollection.collider.extent = { 
+            0.5f,                // Half thickness (X)
+            wallScale.y * 5.0f,  // Half height (Y) - assuming the wall is about 10 units tall
+            wallScale.z * 10.0f  // Half length (Z) - assuming the wall is about 20 units long
+        };
+    }
+    // Right wall (positive X)
+    else if (wallPos.x > 15.0f) {
+        std::cout << "ADJUSTING RIGHT WALL COLLIDER" << std::endl;
+        meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+        meshCollection.collider.extent = { 
+            0.5f,                // Half thickness (X)
+            wallScale.y * 5.0f,  // Half height (Y)
+            wallScale.z * 10.0f  // Half length (Z)
+        };
+    }
+    // Top wall (positive Z)
+    else if (wallPos.z > 15.0f) {
+        std::cout << "ADJUSTING TOP WALL COLLIDER" << std::endl;
+        meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+        meshCollection.collider.extent = { 
+            wallScale.x * 10.0f, // Half width (X)
+            wallScale.y * 5.0f,  // Half height (Y)
+            0.5f                 // Half thickness (Z)
+        };
+    }
+    // Bottom wall (negative Z)
+    else if (wallPos.z < -15.0f) {
+        std::cout << "ADJUSTING BOTTOM WALL COLLIDER" << std::endl;
+        meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+        meshCollection.collider.extent = { 
+            wallScale.x * 10.0f, // Half width (X)
+            wallScale.y * 5.0f,  // Half height (Y)
+            0.5f                 // Half thickness (Z)
+        };
+    }
 
-			// Get the wall's extents and scale them by the wall's transform
-			GW::MATH::GVECTORF wallScale;
-			GW::MATH::GMatrix::GetScaleF(wallTransform.matrix, wallScale);
+    // Debug output after adjustment
+    std::cout << "WALL AFTER ADJUSTMENT: " << wallName
+              << " collider center: (" << meshCollection.collider.center.x
+              << ", " << meshCollection.collider.center.y
+              << ", " << meshCollection.collider.center.z << ")"
+              << ", extents: (" << meshCollection.collider.extent.x
+              << ", " << meshCollection.collider.extent.y
+              << ", " << meshCollection.collider.extent.z << ")" << std::endl;
+}
 
-			// Apply a multiplier to make the colliders larger
-			const float COLLIDER_SCALE_MULTIPLIER = 2.0f;
+bool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::entity entity2) {
+    // Get the transforms and mesh collections for both entities
+    auto& transform1 = registry.get<Transform>(entity1);
+    auto& meshCollection1 = registry.get<MeshCollection>(entity1);
+    auto& transform2 = registry.get<Transform>(entity2);
+    auto& meshCollection2 = registry.get<MeshCollection>(entity2);
 
-			float wallExtentX = wallMeshCollection.collider.extent.x * wallScale.x * COLLIDER_SCALE_MULTIPLIER;
-			float wallExtentY = wallMeshCollection.collider.extent.y * wallScale.y * COLLIDER_SCALE_MULTIPLIER;
-			float wallExtentZ = wallMeshCollection.collider.extent.z * wallScale.z * COLLIDER_SCALE_MULTIPLIER;
+    // Get the positions from the transforms
+    GW::MATH::GVECTORF pos1, pos2;
+    GW::MATH::GMatrix::GetTranslationF(transform1.matrix, pos1);
+    GW::MATH::GMatrix::GetTranslationF(transform2.matrix, pos2);
 
-			// Make sure extents are not too small
-			wallExtentX = std::max<float>(wallExtentX, 2.0f);
-			wallExtentY = std::max<float>(wallExtentY, 2.0f);
-			wallExtentZ = std::max<float>(wallExtentZ, 2.0f);
+    // Check if either entity is a wall
+    bool isWall1 = registry.all_of<Wall>(entity1);
+    bool isWall2 = registry.all_of<Wall>(entity2);
 
-			// Calculate distance from other entity to world collider center
-			float dx = otherPos.x - worldColliderCenter.x;
-			float dy = otherPos.y - worldColliderCenter.y;
-			float dz = otherPos.z - worldColliderCenter.z;
+    // If we're dealing with a wall, use the wall's collider
+    if (isWall1 || isWall2) {
+        // Determine which entity is the wall and which is the other entity
+        auto wallEntity = isWall1 ? entity1 : entity2;
+        auto otherEntity = isWall1 ? entity2 : entity1;
+        auto& wallTransform = isWall1 ? transform1 : transform2;
+        auto& wallMeshCollection = isWall1 ? meshCollection1 : meshCollection2;
+        auto& otherPos = isWall1 ? pos2 : pos1;
 
-			// Debug output for collision check
-			std::cout << "Collision check: Entity at (" << otherPos.x << ", " << otherPos.y << ", " << otherPos.z
-				<< ") with wall center at (" << worldColliderCenter.x << ", " << worldColliderCenter.y << ", " << worldColliderCenter.z
-				<< "), distances: (" << dx << ", " << dy << ", " << dz
-				<< "), extents: (" << wallExtentX << ", " << wallExtentY << ", " << wallExtentZ << ")" << std::endl;
+        // Get wall position
+        GW::MATH::GVECTORF wallPos;
+        GW::MATH::GMatrix::GetTranslationF(wallTransform.matrix, wallPos);
 
-			// Check if the other entity is within the wall's boundaries
-			bool withinX = std::abs(dx) < wallExtentX + 1.0f; // Add 1.0f for collision radius
-			bool withinY = std::abs(dy) < wallExtentY + 1.0f;
-			bool withinZ = std::abs(dz) < wallExtentZ + 1.0f;
+        // Get the wall's collider center and transform it to world space
+        GW::MATH::GVECTORF colliderCenter = wallMeshCollection.collider.center;
+        GW::MATH::GVECTORF worldColliderCenter = {
+            wallPos.x + colliderCenter.x,
+            wallPos.y + colliderCenter.y,
+            wallPos.z + colliderCenter.z
+        };
 
-			// Debug output for collision result
-			if (withinX && withinY && withinZ) {
-				std::cout << "COLLISION DETECTED with wall!" << std::endl;
-			}
+        // Get the wall's extents and scale them by the wall's transform
+        GW::MATH::GVECTORF wallScale;
+        GW::MATH::GMatrix::GetScaleF(wallTransform.matrix, wallScale);
 
-			return withinX && withinY && withinZ;
-		}
-		else {
-			// For non-wall collisions, use a simple distance-based approach
-			float dx = pos2.x - pos1.x;
-			float dy = pos2.y - pos1.y;
-			float dz = pos2.z - pos1.z;
-			float distanceSquared = dx * dx + dy * dy + dz * dz;
+        // Use the extents directly without additional scaling
+        // The extents are already set appropriately in AdjustWallCollider
+        float wallExtentX = wallMeshCollection.collider.extent.x;
+        float wallExtentY = wallMeshCollection.collider.extent.y;
+        float wallExtentZ = wallMeshCollection.collider.extent.z;
 
-			// Check if distance is less than twice the collision radius
-			float collisionDistanceSquared = 4.0f; // 2.0f radius squared
+        // Calculate distance from other entity to world collider center
+        float dx = otherPos.x - worldColliderCenter.x;
+        float dy = otherPos.y - worldColliderCenter.y;
+        float dz = otherPos.z - worldColliderCenter.z;
 
-			return distanceSquared < collisionDistanceSquared;
-		}
-	}
+        // Debug output for collision check
+        std::cout << "Collision check: Entity at (" << otherPos.x << ", " << otherPos.y << ", " << otherPos.z
+                << ") with wall center at (" << worldColliderCenter.x << ", " << worldColliderCenter.y << ", " << worldColliderCenter.z
+                << "), distances: (" << dx << ", " << dy << ", " << dz
+                << "), extents: (" << wallExtentX << ", " << wallExtentY << ", " << wallExtentZ << ")" << std::endl;
 
-	// Handle collision between two entities
-	void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entity entity2) {
-		// Check entity types and handle collisions accordingly
-		bool isPlayer1 = registry.all_of<Player>(entity1);
-		bool isPlayer2 = registry.all_of<Player>(entity2);
-		bool isEnemy1 = registry.all_of<Enemy>(entity1);
-		bool isEnemy2 = registry.all_of<Enemy>(entity2);
-		bool isBullet1 = registry.all_of<Bullet>(entity1);
-		bool isBullet2 = registry.all_of<Bullet>(entity2);
-		bool isWall1 = registry.all_of<Wall>(entity1);
-		bool isWall2 = registry.all_of<Wall>(entity2);
+        // Add a small collision radius for non-wall entities (1.0 unit)
+        float collisionRadius = 1.0f;
 
-		// Player-Wall collision: prevent player from moving through walls
-		if ((isPlayer1 && isWall2) || (isPlayer2 && isWall1)) {
-			auto playerEntity = isPlayer1 ? entity1 : entity2;
-			auto wallEntity = isPlayer1 ? entity2 : entity1;
+        // Check if the other entity is within the wall's boundaries
+        bool withinX = std::abs(dx) < wallExtentX + collisionRadius;
+        bool withinY = std::abs(dy) < wallExtentY + collisionRadius;
+        bool withinZ = std::abs(dz) < wallExtentZ + collisionRadius;
 
-			// Get the player's transform
-			auto& playerTransform = registry.get<Transform>(playerEntity);
-			auto& wallTransform = registry.get<Transform>(wallEntity);
-			auto& wallMeshCollection = registry.get<MeshCollection>(wallEntity);
+        // Debug output for collision result
+        if (withinX && withinY && withinZ) {
+            std::cout << "COLLISION DETECTED with wall!" << std::endl;
+        }
 
-			// Get positions
-			GW::MATH::GVECTORF playerPos, wallPos;
-			GW::MATH::GMatrix::GetTranslationF(playerTransform.matrix, playerPos);
-			GW::MATH::GMatrix::GetTranslationF(wallTransform.matrix, wallPos);
+        return withinX && withinY && withinZ;
+    }
+    else {
+        // For non-wall collisions, use a simple distance-based approach
+        float dx = pos2.x - pos1.x;
+        float dy = pos2.y - pos1.y;
+        float dz = pos2.z - pos1.z;
+        float distanceSquared = dx * dx + dy * dy + dz * dz;
 
-			// Get the wall's collider center and transform it to world space
-			GW::MATH::GVECTORF colliderCenter = wallMeshCollection.collider.center;
-			GW::MATH::GVECTORF worldColliderCenter = {
-				wallPos.x + colliderCenter.x,
-				wallPos.y + colliderCenter.y,
-				wallPos.z + colliderCenter.z
-			};
+        // Check if distance is less than twice the collision radius
+        // Using a collision radius of 1.0 for all non-wall entities
+        float collisionRadius = 1.0f;
+        float collisionDistanceSquared = collisionRadius * collisionRadius * 4.0f; // (radius1 + radius2)^2
 
-			// Calculate direction from wall center to player
-			GW::MATH::GVECTORF direction = {
-				playerPos.x - worldColliderCenter.x,
-				0.0f, // No vertical component to avoid pushing player under floor
-				playerPos.z - worldColliderCenter.z
-			};
+        return distanceSquared < collisionDistanceSquared;
+    }
+}
 
-			// Normalize the direction vector (avoid division by zero)
-			float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
-			if (length > 0.001f) {
-				direction.x /= length;
-				direction.z /= length;
-			}
-			else {
-				// If we're directly above/below the wall, determine which side to push based on player position
-				if (playerPos.x > worldColliderCenter.x) {
-					direction.x = 1.0f;
-				}
-				else {
-					direction.x = -1.0f;
-				}
-			}
-
-			// Move the player away from the wall with a stronger push
-			GW::MATH::GVECTORF pushOut = {
-				direction.x * 1.0f, // Stronger push
-				0.0f, // No vertical push
-				direction.z * 1.0f  // Stronger push
-			};
-
-			GW::MATH::GMatrix::TranslateGlobalF(playerTransform.matrix, pushOut, playerTransform.matrix);
-
-			std::cout << "Player collided with wall - pushed out with vector: ("
-				<< pushOut.x << ", " << pushOut.y << ", " << pushOut.z << ")" << std::endl;
-		}
-
-		// Enemy-Wall collision: make enemy bounce off wall
-		if ((isEnemy1 && isWall2) || (isEnemy2 && isWall1)) {
-			auto enemyEntity = isEnemy1 ? entity1 : entity2;
-
-			// Get the enemy's transform
-			auto& enemyTransform = registry.get<Transform>(enemyEntity);
-
-			// Simple bounce: move the enemy back slightly
-			GW::MATH::GVECTORF moveBack = { -0.1f, 0.0f, -0.1f };
-			GW::MATH::GMatrix::TranslateGlobalF(enemyTransform.matrix, moveBack, enemyTransform.matrix);
-
-			std::cout << "Enemy collided with wall" << std::endl;
-		}
-
-		// Bullet-Wall collision: destroy bullet
-		if ((isBullet1 && isWall2) || (isBullet2 && isWall1)) {
-			auto bulletEntity = isBullet1 ? entity1 : entity2;
-
-			// Destroy the bullet
-			registry.destroy(bulletEntity);
-
-			std::cout << "Bullet collided with wall and was destroyed" << std::endl;
-		}
-
-		// Bullet-Enemy collision: destroy both
-		if ((isBullet1 && isEnemy2) || (isBullet2 && isEnemy1)) {
-			auto bulletEntity = isBullet1 ? entity1 : entity2;
-			auto enemyEntity = isEnemy1 ? entity1 : entity2;
-
-			// Destroy both entities
-			registry.destroy(bulletEntity);
-			registry.destroy(enemyEntity);
-
-			std::cout << "Bullet hit enemy! Both were destroyed" << std::endl;
-		}
-	}
-
-	void GAME::AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName)
-	{
-		// Get the wall's position
-		GW::MATH::GVECTORF wallPos;
-		GW::MATH::GMatrix::GetTranslationF(transform, wallPos);
-
-		// Get the wall's mesh collection
-		auto& meshCollection = registry.get<MeshCollection>(wallEntity);
-
-		// Determine which wall this is based on position
-		// Left wall (negative X)
-		if (wallPos.x < -15.0f) {
-			std::cout << "ADJUSTING LEFT WALL COLLIDER" << std::endl;
-			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-			meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
-		}
-		// Right wall (positive X)
-		else if (wallPos.x > 15.0f) {
-			std::cout << "ADJUSTING RIGHT WALL COLLIDER" << std::endl;
-			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-			meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
-		}
-		// Top wall (positive Z)
-		else if (wallPos.z > 15.0f) {
-			std::cout << "ADJUSTING TOP WALL COLLIDER" << std::endl;
-			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-			meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
-		}
-		// Bottom wall (negative Z)
-		else if (wallPos.z < -15.0f) {
-			std::cout << "ADJUSTING BOTTOM WALL COLLIDER" << std::endl;
-			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-			meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
-		}
-	}
-
-
-	// Check for collisions between collidable entities
-	void CheckCollisions(entt::registry& registry) {
-		// Get all entities with Transform, MeshCollection, and Collidable components
-		auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
-
-		// For each collidable entity
-		for (auto entity1 : collidableView) {
-			// For each other collidable entity
-			for (auto entity2 : collidableView) {
-				// Skip self-collision
-				if (entity1 == entity2) continue;
-
-				// Check if the entities are colliding
-				if (GAME::AreEntitiesColliding(registry, entity1, entity2)) {
-					// Handle the collision
-					GAME::HandleCollision(registry, entity1, entity2);
-				}
-			}
-		}
-	}
-
-}// namespace GAME
+// Check for collisions between collidable entities
