@@ -79,10 +79,28 @@ namespace GAME
 				auto& bulletTransform = registry.get<Transform>(bulletEntity);
 				bulletTransform.matrix = transform.matrix; // Copy the player's transform
 
+				// Create a direction vector based on which arrow key was pressed
+				GW::MATH::GVECTORF bulletDirection = { 0.0f, 0.0f, 0.0f };
+				if (upKey > 0.0f) bulletDirection.z = 1.0f;
+				if (downKey > 0.0f) bulletDirection.z = -1.0f;
+				if (leftKey > 0.0f) bulletDirection.x = -1.0f;
+				if (rightKey > 0.0f) bulletDirection.x = 1.0f;
+
+				// Normalize the direction vector if needed
+				if (bulletDirection.x != 0.0f && bulletDirection.z != 0.0f) {
+					float length = std::sqrt(bulletDirection.x * bulletDirection.x + bulletDirection.z * bulletDirection.z);
+					bulletDirection.x /= length;
+					bulletDirection.z /= length;
+				}
+
+				// Add the Velocity component to the bullet
+				float bulletSpeed = 10.0f; // Bullets move faster than the player
+				registry.emplace<Velocity>(bulletEntity, bulletDirection, bulletSpeed);
+
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
 
-				std::cout << "Bullet fired!" << std::endl;
+				std::cout << "Bullet fired with direction: " << bulletDirection.x << ", " << bulletDirection.z << std::endl;
 			}
 		}
 	}

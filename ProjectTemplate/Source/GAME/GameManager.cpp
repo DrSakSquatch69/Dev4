@@ -23,11 +23,41 @@ namespace GAME {
 			registry.patch<Player>(entity); // This will trigger the Player's on_update method 
 		}
 
+		// Update positions based on velocity
+		UpdateVelocitySystem(registry, deltaTime);
+
 		// Check for collisions between entities
 		CheckCollisions(registry);
 
 		// Update GPU instances from Transform components 
 		UpdateGPUInstances(registry);
+	}
+
+	void UpdateVelocitySystem(entt::registry& registry, float deltaTime) {
+		// Get all entities with Transform and Velocity components
+		auto velocityView = registry.view<Transform, Velocity>();
+
+		// For each entity with velocity
+		for (auto entity : velocityView) {
+			// Get the transform and velocity components
+			auto& transform = registry.get<Transform>(entity);
+			auto& velocity = registry.get<Velocity>(entity);
+
+			// Calculate movement based on velocity and delta time
+			GW::MATH::GVECTORF movement = {
+				velocity.direction.x * velocity.speed * deltaTime,
+				velocity.direction.y * velocity.speed * deltaTime,
+				velocity.direction.z * velocity.speed * deltaTime
+			};
+
+			// Apply movement to transform
+			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
+
+			// Debug output
+			if (registry.all_of<Bullet>(entity)) {
+				std::cout << "Bullet moved: " << movement.x << ", " << movement.z << std::endl;
+			}
+		}
 	}
 
 	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {

@@ -62,6 +62,8 @@ namespace GAME
 
     // Handle keyboard input for toggling visibility
     void HandleVisibilityToggleInput(entt::registry& registry);
+\n       // Update positions based on velocity\
+       void UpdateVelocitySystem(entt::registry& registry, float deltaTime);
 }
 
 #endif // GAME_MANAGER_H
