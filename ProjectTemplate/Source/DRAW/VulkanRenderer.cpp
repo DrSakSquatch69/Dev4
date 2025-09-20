@@ -689,7 +689,7 @@ namespace DRAW
 			// *** START OF STEP 3C IMPLEMENTATION ***
 			// STEP 3C: Create containers for instance data
 			std::vector<GPUInstance> instances;
-			std::map<GeometryData, size_t> geometryMap;
+			std::map<GeometryData, int> geometryMap;
 
 			// Loop through all entities with GeometryData and GPUInstance
 			for (auto entityId : renderGroup)

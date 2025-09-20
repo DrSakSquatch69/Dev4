@@ -21,13 +21,14 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
             // Each model can have multiple meshes
             for (unsigned meshIdx = 0; meshIdx < model.meshCount; ++meshIdx)
             {
+                entt::entity meshEntity = registry.create();
+                
                 // Get the mesh
                 unsigned meshGlobalIdx = model.meshStart + meshIdx;
                 if (meshGlobalIdx >= levelData.levelMeshes.size()) continue;
                 const auto& mesh = levelData.levelMeshes[meshGlobalIdx];
 
                 // Create a new entity for this mesh instance
-                entt::entity meshEntity = registry.create();
 
                 // Add the entity to the appropriate collection based on the model name
                 std::string modelName = model.filename;
@@ -100,6 +101,7 @@ void Construct_GPULevel(entt::registry& registry, entt::entity entity)
         return;
 
     auto& cpuLevel = registry.get<CPULevel>(entity);
+    
     auto& gpuLevel = registry.get<GPULevel>(entity);
 
     // Create vertex and index buffers if they don't exist
