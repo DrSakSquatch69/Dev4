@@ -88,6 +88,9 @@ void GraphicsBehavior(entt::registry& registry)
 	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{ LevelFile, ModelPath });
 
 	CreatePlayer(registry);
+        
+        // Create walls from level data
+        GAME::CreateWalls(registry);
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
