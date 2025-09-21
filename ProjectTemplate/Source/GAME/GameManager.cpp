@@ -1,6 +1,9 @@
 #include "GameManager.h"
 #include "../CCL.h"
 #include "../UTIL/Utilities.h"
+#include <vector>
+#include <set>
+#include <algorithm>
 using namespace GAME;
 
 namespace GAME {
@@ -741,6 +744,10 @@ namespace GAME {
 	void CheckCollisions(entt::registry& registry) {
 		// Get all entities with Transform, MeshCollection, and Collidable components
 		auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
+		
+		// Collect collision pairs to process
+		std::vector<std::pair<entt::entity, entt::entity>> collisionPairs;
+		std::set<std::pair<entt::entity, entt::entity>> processedPairs;
 
 		// For each collidable entity
 		for (auto entity1 : collidableView) {
@@ -748,12 +755,29 @@ namespace GAME {
 			for (auto entity2 : collidableView) {
 				// Skip self-collision
 				if (entity1 == entity2) continue;
+				
+				// Skip if we have already processed this pair (avoid duplicate collision handling)
+				auto pair1 = std::make_pair(entity1, entity2);
+				auto pair2 = std::make_pair(entity2, entity1);
+				if (processedPairs.find(pair1) != processedPairs.end() || 
+					processedPairs.find(pair2) != processedPairs.end()) {
+					continue;
+				}
 
 				// Check if the entities are colliding
 				if (GAME::AreEntitiesColliding(registry, entity1, entity2)) {
-					// Handle the collision
-					GAME::HandleCollision(registry, entity1, entity2);
+					// Add to collision pairs and mark as processed
+					collisionPairs.push_back(pair1);
+					processedPairs.insert(pair1);
 				}
+			}
+		}
+		
+		// Process all collisions after detection is complete
+		for (const auto& pair : collisionPairs) {
+			// Verify entities still exist before handling collision
+			if (registry.valid(pair.first) && registry.valid(pair.second)) {
+				GAME::HandleCollision(registry, pair.first, pair.second);
 			}
 		}
 	}
