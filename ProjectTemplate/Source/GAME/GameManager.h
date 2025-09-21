@@ -43,6 +43,9 @@ namespace GAME
 
     // Handle collision between two entities
     void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entity entity2);
+    
+    // Handle collision between two entities with deferred destruction
+    void HandleCollisionDeferred(entt::registry& registry, entt::entity entity1, entt::entity entity2, std::vector<entt::entity>& entitiesToDestroy);
 
     // Check if two entities are colliding
     bool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::entity entity2);
