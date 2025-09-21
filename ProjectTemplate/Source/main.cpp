@@ -212,7 +212,7 @@ entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::stri
 			// Look for the model in the level data
 			for (const auto& model : cpuLevel.lvlData.levelModels) {
 				std::string filename = model.filename;
-				size_t lastSlash = filename.find_last_of("/\\");
+				size_t lastSlash = filename.find_last_of("/\&quot;);
 				if (lastSlash != std::string::npos)
 					filename = filename.substr(lastSlash + 1);
 				
@@ -302,7 +302,22 @@ void GameplayBehavior(entt::registry& registry)
 		// Create enemy entity
 		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 		registry.emplace<GAME::Enemy>(enemyEntity);
-		std::cout << "Enemy entity created" << std::endl;
+		
+		// Add Collidable tag to enemy for collision detection if not already added
+		if (!registry.all_of<GAME::Collidable>(enemyEntity)) {
+			registry.emplace<GAME::Collidable>(enemyEntity);
+		}
+		
+		// Add velocity component to enemy with random direction
+		GW::MATH::GVECTORF randomDirection = UTIL::GetRandomVelocityVector();
+		float enemySpeed = 5.0f; // Set an appropriate speed for the enemy
+		registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, enemySpeed);
+		
+		std::cout << "Enemy entity created with velocity: (" 
+			<< randomDirection.x << ", " 
+			<< randomDirection.y << ", " 
+			<< randomDirection.z << ") and speed: " 
+			<< enemySpeed << std::endl;
 
 		// Set initial visibility
 		auto& gameManager = registry.ctx().get<GAME::GameManager>();

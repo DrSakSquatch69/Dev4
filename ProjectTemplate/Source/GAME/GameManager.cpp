@@ -603,18 +603,82 @@ bool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::
 		}
 
 		// Enemy-Wall collision: make enemy bounce off wall
-		if ((isEnemy1 && isWall2) || (isEnemy2 && isWall1)) {
-			auto enemyEntity = isEnemy1 ? entity1 : entity2;
+// Enemy-Wall collision: make enemy bounce off wall
+	if ((isEnemy1 && isWall2) || (isEnemy2 && isWall1)) {
+		auto enemyEntity = isEnemy1 ? entity1 : entity2;
+		auto wallEntity = isEnemy1 ? entity2 : entity1;
 
-			// Get the enemy's transform
-			auto& enemyTransform = registry.get<Transform>(enemyEntity);
-
-			// Simple bounce: move the enemy back slightly
+		// Get the enemy's transform and velocity
+		auto& enemyTransform = registry.get<Transform>(enemyEntity);
+		
+		// Check if the enemy has a velocity component
+		if (registry.all_of<Velocity>(enemyEntity)) {
+			auto& enemyVelocity = registry.get<Velocity>(enemyEntity);
+			auto& wallTransform = registry.get<Transform>(wallEntity);
+			auto& wallMeshCollection = registry.get<MeshCollection>(wallEntity);
+			
+			// Get positions
+			GW::MATH::GVECTORF enemyPos, wallPos;
+			GW::MATH::GMatrix::GetTranslationF(enemyTransform.matrix, enemyPos);
+			GW::MATH::GMatrix::GetTranslationF(wallTransform.matrix, wallPos);
+			
+			// Get the wall's collider center and transform it to world space
+			GW::MATH::GVECTORF colliderCenter = wallMeshCollection.collider.center;
+			GW::MATH::GVECTORF worldColliderCenter = {
+				wallPos.x + colliderCenter.x,
+				wallPos.y + colliderCenter.y,
+				wallPos.z + colliderCenter.z
+			};
+			
+			// Calculate direction from wall center to enemy
+			GW::MATH::GVECTORF direction = {
+				enemyPos.x - worldColliderCenter.x,
+				0.0f, // No vertical component
+				enemyPos.z - worldColliderCenter.z
+			};
+			
+			// Determine which axis to reflect based on wall position
+			bool reflectX = false;
+			bool reflectZ = false;
+			
+			// Check if it's a left/right wall or top/bottom wall
+			if (wallPos.x < -15.0f || wallPos.x > 15.0f) {
+				// Left or right wall - reflect X component
+				reflectX = true;
+			}
+			else if (wallPos.z < -15.0f || wallPos.z > 15.0f) {
+				// Top or bottom wall - reflect Z component
+				reflectZ = true;
+			}
+			
+			// Reflect the velocity vector
+			if (reflectX) {
+				enemyVelocity.direction.x = -enemyVelocity.direction.x;
+			}
+			if (reflectZ) {
+				enemyVelocity.direction.z = -enemyVelocity.direction.z;
+			}
+			
+			// Move the enemy away from the wall slightly to prevent sticking
+			GW::MATH::GVECTORF pushOut = {
+				enemyVelocity.direction.x * 0.5f,
+				0.0f,
+				enemyVelocity.direction.z * 0.5f
+			};
+			GW::MATH::GMatrix::TranslateGlobalF(enemyTransform.matrix, pushOut, enemyTransform.matrix);
+			
+			std::cout << "Enemy bounced off wall with new direction: (" 
+				<< enemyVelocity.direction.x << ", " 
+				<< enemyVelocity.direction.y << ", " 
+				<< enemyVelocity.direction.z << ")" << std::endl;
+		}
+		else {
+			// Fallback for enemies without velocity - simple push
 			GW::MATH::GVECTORF moveBack = { -0.1f, 0.0f, -0.1f };
 			GW::MATH::GMatrix::TranslateGlobalF(enemyTransform.matrix, moveBack, enemyTransform.matrix);
-
-			std::cout << "Enemy collided with wall" << std::endl;
+			std::cout << "Enemy without velocity collided with wall" << std::endl;
 		}
+	}		}
 
 		// Bullet-Wall collision: destroy bullet
 		if ((isBullet1 && isWall2) || (isBullet2 && isWall1)) {
