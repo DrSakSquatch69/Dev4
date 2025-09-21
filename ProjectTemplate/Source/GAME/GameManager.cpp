@@ -757,4 +757,5 @@ void CheckCollisions(entt::registry& registry) {
 			}
 		}
 	}
+
 }// namespace GAME
