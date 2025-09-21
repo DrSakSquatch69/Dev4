@@ -526,97 +526,32 @@ namespace GAME {
 			return distanceSquared < collisionDistanceSquared;
 		}
 	}
-}
 
-// Handle collision between two entities
-void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entity entity2) {
-	// Check entity types and handle collisions accordingly
-	bool isPlayer1 = registry.all_of<Player>(entity1);
-	bool isPlayer2 = registry.all_of<Player>(entity2);
-	bool isEnemy1 = registry.all_of<Enemy>(entity1);
-	bool isEnemy2 = registry.all_of<Enemy>(entity2);
-	bool isBullet1 = registry.all_of<Bullet>(entity1);
-	bool isBullet2 = registry.all_of<Bullet>(entity2);
-	bool isWall1 = registry.all_of<Wall>(entity1);
-	bool isWall2 = registry.all_of<Wall>(entity2);
+	// Handle collision between two entities
+	void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entity entity2) {
+		// Check entity types and handle collisions accordingly
+		bool isPlayer1 = registry.all_of<Player>(entity1);
+		bool isPlayer2 = registry.all_of<Player>(entity2);
+		bool isEnemy1 = registry.all_of<Enemy>(entity1);
+		bool isEnemy2 = registry.all_of<Enemy>(entity2);
+		bool isBullet1 = registry.all_of<Bullet>(entity1);
+		bool isBullet2 = registry.all_of<Bullet>(entity2);
+		bool isWall1 = registry.all_of<Wall>(entity1);
+		bool isWall2 = registry.all_of<Wall>(entity2);
 
-	// Player-Wall collision: prevent player from moving through walls
-	if ((isPlayer1 && isWall2) || (isPlayer2 && isWall1)) {
-		auto playerEntity = isPlayer1 ? entity1 : entity2;
-		auto wallEntity = isPlayer1 ? entity2 : entity1;
+		// Player-Wall collision: prevent player from moving through walls
+		if ((isPlayer1 && isWall2) || (isPlayer2 && isWall1)) {
+			auto playerEntity = isPlayer1 ? entity1 : entity2;
+			auto wallEntity = isPlayer1 ? entity2 : entity1;
 
-		// Get the player's transform
-		auto& playerTransform = registry.get<Transform>(playerEntity);
-		auto& wallTransform = registry.get<Transform>(wallEntity);
-		auto& wallMeshCollection = registry.get<MeshCollection>(wallEntity);
-
-		// Get positions
-		GW::MATH::GVECTORF playerPos, wallPos;
-		GW::MATH::GMatrix::GetTranslationF(playerTransform.matrix, playerPos);
-		GW::MATH::GMatrix::GetTranslationF(wallTransform.matrix, wallPos);
-
-		// Get the wall's collider center and transform it to world space
-		GW::MATH::GVECTORF colliderCenter = wallMeshCollection.collider.center;
-		GW::MATH::GVECTORF worldColliderCenter = {
-			wallPos.x + colliderCenter.x,
-			wallPos.y + colliderCenter.y,
-			wallPos.z + colliderCenter.z
-		};
-
-		// Calculate direction from wall center to player
-		GW::MATH::GVECTORF direction = {
-			playerPos.x - worldColliderCenter.x,
-			0.0f, // No vertical component to avoid pushing player under floor
-			playerPos.z - worldColliderCenter.z
-		};
-
-		// Normalize the direction vector (avoid division by zero)
-		float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
-		if (length > 0.001f) {
-			direction.x /= length;
-			direction.z /= length;
-		}
-		else {
-			// If we're directly above/below the wall, determine which side to push based on player position
-			if (playerPos.x > worldColliderCenter.x) {
-				direction.x = 1.0f;
-			}
-			else {
-				direction.x = -1.0f;
-			}
-		}
-
-		// Move the player away from the wall with a stronger push
-		GW::MATH::GVECTORF pushOut = {
-			direction.x * 1.0f, // Stronger push
-			0.0f, // No vertical push
-			direction.z * 1.0f  // Stronger push
-		};
-
-		GW::MATH::GMatrix::TranslateGlobalF(playerTransform.matrix, pushOut, playerTransform.matrix);
-
-		std::cout << "Player collided with wall - pushed out with vector: ("
-			<< pushOut.x << ", " << pushOut.y << ", " << pushOut.z << ")" << std::endl;
-	}
-
-	// Enemy-Wall collision: make enemy bounce off wall
-// Enemy-Wall collision: make enemy bounce off wall
-	if ((isEnemy1 && isWall2) || (isEnemy2 && isWall1)) {
-		auto enemyEntity = isEnemy1 ? entity1 : entity2;
-		auto wallEntity = isEnemy1 ? entity2 : entity1;
-
-		// Get the enemy's transform and velocity
-		auto& enemyTransform = registry.get<Transform>(enemyEntity);
-
-		// Check if the enemy has a velocity component
-		if (registry.all_of<Velocity>(enemyEntity)) {
-			auto& enemyVelocity = registry.get<Velocity>(enemyEntity);
+			// Get the player's transform
+			auto& playerTransform = registry.get<Transform>(playerEntity);
 			auto& wallTransform = registry.get<Transform>(wallEntity);
 			auto& wallMeshCollection = registry.get<MeshCollection>(wallEntity);
 
 			// Get positions
-			GW::MATH::GVECTORF enemyPos, wallPos;
-			GW::MATH::GMatrix::GetTranslationF(enemyTransform.matrix, enemyPos);
+			GW::MATH::GVECTORF playerPos, wallPos;
+			GW::MATH::GMatrix::GetTranslationF(playerTransform.matrix, playerPos);
 			GW::MATH::GMatrix::GetTranslationF(wallTransform.matrix, wallPos);
 
 			// Get the wall's collider center and transform it to world space
@@ -627,173 +562,206 @@ void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entit
 				wallPos.z + colliderCenter.z
 			};
 
-			// Calculate direction from wall center to enemy
+			// Calculate direction from wall center to player
 			GW::MATH::GVECTORF direction = {
-				enemyPos.x - worldColliderCenter.x,
-				0.0f, // No vertical component
-				enemyPos.z - worldColliderCenter.z
+				playerPos.x - worldColliderCenter.x,
+				0.0f, // No vertical component to avoid pushing player under floor
+				playerPos.z - worldColliderCenter.z
 			};
 
-			// Determine which axis to reflect based on wall position
-			bool reflectX = false;
-			bool reflectZ = false;
-
-			// Check if it's a left/right wall or top/bottom wall
-			if (wallPos.x < -15.0f || wallPos.x > 15.0f) {
-				// Left or right wall - reflect X component
-				reflectX = true;
+			// Normalize the direction vector (avoid division by zero)
+			float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
+			if (length > 0.001f) {
+				direction.x /= length;
+				direction.z /= length;
 			}
-			else if (wallPos.z < -15.0f || wallPos.z > 15.0f) {
-				// Top or bottom wall - reflect Z component
-				reflectZ = true;
-			}
-
-			// Reflect the velocity vector
-			if (reflectX) {
-				enemyVelocity.direction.x = -enemyVelocity.direction.x;
-			}
-			if (reflectZ) {
-				enemyVelocity.direction.z = -enemyVelocity.direction.z;
+			else {
+				// If we're directly above/below the wall, determine which side to push based on player position
+				if (playerPos.x > worldColliderCenter.x) {
+					direction.x = 1.0f;
+				}
+				else {
+					direction.x = -1.0f;
+				}
 			}
 
-			// Move the enemy away from the wall slightly to prevent sticking
+			// Move the player away from the wall with a stronger push
 			GW::MATH::GVECTORF pushOut = {
-				enemyVelocity.direction.x * 0.5f,
-				0.0f,
-				enemyVelocity.direction.z * 0.5f
+				direction.x * 1.0f, // Stronger push
+				0.0f, // No vertical push
+				direction.z * 1.0f  // Stronger push
 			};
 
-			GW::MATH::GMatrix::TranslateGlobalF(enemyTransform.matrix, pushOut, enemyTransform.matrix);
+			GW::MATH::GMatrix::TranslateGlobalF(playerTransform.matrix, pushOut, playerTransform.matrix);
 
-			std::cout << "Enemy bounced off wall with new direction: ("
-				<< enemyVelocity.direction.x << ", "
-				<< enemyVelocity.direction.y << ", "
-				<< enemyVelocity.direction.z << ")" << std::endl;
+			std::cout << "Player collided with wall - pushed out with vector: ("
+				<< pushOut.x << ", " << pushOut.y << ", " << pushOut.z << ")" << std::endl;
 		}
-		else {
-			// Fallback for enemies without velocity - simple push
-			GW::MATH::GVECTORF moveBack = { -0.1f, 0.0f, -0.1f };
-			GW::MATH::GMatrix::TranslateGlobalF(enemyTransform.matrix, moveBack, enemyTransform.matrix);
-			std::cout << "Enemy without velocity collided with wall" << std::endl;
+
+		// Enemy-Wall collision: make enemy bounce off wall
+	// Enemy-Wall collision: make enemy bounce off wall
+		if ((isEnemy1 && isWall2) || (isEnemy2 && isWall1)) {
+			auto enemyEntity = isEnemy1 ? entity1 : entity2;
+			auto wallEntity = isEnemy1 ? entity2 : entity1;
+
+			// Get the enemy's transform and velocity
+			auto& enemyTransform = registry.get<Transform>(enemyEntity);
+
+			// Check if the enemy has a velocity component
+			if (registry.all_of<Velocity>(enemyEntity)) {
+				auto& enemyVelocity = registry.get<Velocity>(enemyEntity);
+				auto& wallTransform = registry.get<Transform>(wallEntity);
+				auto& wallMeshCollection = registry.get<MeshCollection>(wallEntity);
+
+				// Get positions
+				GW::MATH::GVECTORF enemyPos, wallPos;
+				GW::MATH::GMatrix::GetTranslationF(enemyTransform.matrix, enemyPos);
+				GW::MATH::GMatrix::GetTranslationF(wallTransform.matrix, wallPos);
+
+				// Get the wall's collider center and transform it to world space
+				GW::MATH::GVECTORF colliderCenter = wallMeshCollection.collider.center;
+				GW::MATH::GVECTORF worldColliderCenter = {
+					wallPos.x + colliderCenter.x,
+					wallPos.y + colliderCenter.y,
+					wallPos.z + colliderCenter.z
+				};
+
+				// Calculate direction from wall center to enemy
+				GW::MATH::GVECTORF direction = {
+					enemyPos.x - worldColliderCenter.x,
+					0.0f, // No vertical component
+					enemyPos.z - worldColliderCenter.z
+				};
+
+				// Determine which axis to reflect based on wall position
+				bool reflectX = false;
+				bool reflectZ = false;
+
+				// Check if it's a left/right wall or top/bottom wall
+				if (wallPos.x < -15.0f || wallPos.x > 15.0f) {
+					// Left or right wall - reflect X component
+					reflectX = true;
+				}
+				else if (wallPos.z < -15.0f || wallPos.z > 15.0f) {
+					// Top or bottom wall - reflect Z component
+					reflectZ = true;
+				}
+
+				// Reflect the velocity vector
+				if (reflectX) {
+					enemyVelocity.direction.x = -enemyVelocity.direction.x;
+				}
+				if (reflectZ) {
+					enemyVelocity.direction.z = -enemyVelocity.direction.z;
+				}
+
+				// Move the enemy away from the wall slightly to prevent sticking
+				GW::MATH::GVECTORF pushOut = {
+					enemyVelocity.direction.x * 0.5f,
+					0.0f,
+					enemyVelocity.direction.z * 0.5f
+				};
+
+				GW::MATH::GMatrix::TranslateGlobalF(enemyTransform.matrix, pushOut, enemyTransform.matrix);
+
+				std::cout << "Enemy bounced off wall with new direction: ("
+					<< enemyVelocity.direction.x << ", "
+					<< enemyVelocity.direction.y << ", "
+					<< enemyVelocity.direction.z << ")" << std::endl;
+			}
+			else {
+				// Fallback for enemies without velocity - simple push
+				GW::MATH::GVECTORF moveBack = { -0.1f, 0.0f, -0.1f };
+				GW::MATH::GMatrix::TranslateGlobalF(enemyTransform.matrix, moveBack, enemyTransform.matrix);
+				std::cout << "Enemy without velocity collided with wall" << std::endl;
+			}
+		}
+
+		// Bullet-Wall collision: destroy bullet
+		if ((isBullet1 && isWall2) || (isBullet2 && isWall1)) {
+			auto bulletEntity = isBullet1 ? entity1 : entity2;
+
+			// Destroy the bullet
+			registry.destroy(bulletEntity);
+
+			std::cout << "Bullet collided with wall and was destroyed" << std::endl;
+		}
+
+		// Bullet-Enemy collision: destroy both
+		if ((isBullet1 && isEnemy2) || (isBullet2 && isEnemy1)) {
+			auto bulletEntity = isBullet1 ? entity1 : entity2;
+			auto enemyEntity = isEnemy1 ? entity1 : entity2;
+
+			// Destroy both entities
+			registry.destroy(bulletEntity);
+			registry.destroy(enemyEntity);
+
+			std::cout << "Bullet hit enemy! Both were destroyed" << std::endl;
 		}
 	}
 
-	// Bullet-Wall collision: destroy bullet
-	if ((isBullet1 && isWall2) || (isBullet2 && isWall1)) {
-		auto bulletEntity = isBullet1 ? entity1 : entity2;
+	void GAME::AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName)
+	{
+		// Get the wall's position
+		GW::MATH::GVECTORF wallPos;
+		GW::MATH::GMatrix::GetTranslationF(transform, wallPos);
 
-		// Destroy the bullet
-		registry.destroy(bulletEntity);
+		// Get the wall's mesh collection
+		auto& meshCollection = registry.get<MeshCollection>(wallEntity);
 
-		std::cout << "Bullet collided with wall and was destroyed" << std::endl;
+		// Determine which wall this is based on position
+		// Left wall (negative X)
+		if (wallPos.x < -15.0f) {
+			std::cout << "ADJUSTING LEFT WALL COLLIDER" << std::endl;
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
+		}
+		// Right wall (positive X)
+		else if (wallPos.x > 15.0f) {
+			std::cout << "ADJUSTING RIGHT WALL COLLIDER" << std::endl;
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
+		}
+		// Top wall (positive Z)
+		else if (wallPos.z > 15.0f) {
+			std::cout << "ADJUSTING TOP WALL COLLIDER" << std::endl;
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
+		}
+		// Bottom wall (negative Z)
+		else if (wallPos.z < -15.0f) {
+			std::cout << "ADJUSTING BOTTOM WALL COLLIDER" << std::endl;
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
+		}
 	}
 
-	// Bullet-Enemy collision: destroy both
-	if ((isBullet1 && isEnemy2) || (isBullet2 && isEnemy1)) {
-		auto bulletEntity = isBullet1 ? entity1 : entity2;
-		auto enemyEntity = isEnemy1 ? entity1 : entity2;
 
-		// Destroy both entities
-		registry.destroy(bulletEntity);
-		registry.destroy(enemyEntity);
+	// Check for collisions between collidable entities
+	void CheckCollisions(entt::registry& registry) {
+		// Get all entities with Transform, MeshCollection, and Collidable components
+		auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
 
-		std::cout << "Bullet hit enemy! Both were destroyed" << std::endl;
-	}
-}
+		// For each collidable entity
+		for (auto entity1 : collidableView) {
+			// For each other collidable entity
+			for (auto entity2 : collidableView) {
+				// Skip self-collision
+				if (entity1 == entity2) continue;
 
-void GAME::AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName)
-{
-	// Get the wall's position
-	GW::MATH::GVECTORF wallPos;
-	GW::MATH::GMatrix::GetTranslationF(transform, wallPos);
-
-	// Get the wall's mesh collection
-	auto& meshCollection = registry.get<MeshCollection>(wallEntity);
-
-	// Determine which wall this is based on position
-	// Left wall (negative X)
-	if (wallPos.x < -15.0f) {
-		std::cout << "ADJUSTING LEFT WALL COLLIDER" << std::endl;
-		meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-		meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
-	}
-	// Right wall (positive X)
-	else if (wallPos.x > 15.0f) {
-		std::cout << "ADJUSTING RIGHT WALL COLLIDER" << std::endl;
-		meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-		meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
-	}
-	// Top wall (positive Z)
-	else if (wallPos.z > 15.0f) {
-		std::cout << "ADJUSTING TOP WALL COLLIDER" << std::endl;
-		meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-		meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
-	}
-	// Bottom wall (negative Z)
-	else if (wallPos.z < -15.0f) {
-		std::cout << "ADJUSTING BOTTOM WALL COLLIDER" << std::endl;
-		meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-		meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
-	}
-}
-
-
-// Check for collisions between collidable entities
-void CheckCollisions(entt::registry& registry) {
-	// Get all entities with Transform, MeshCollection, and Collidable components
-	auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
-
-	// For each collidable entity
-	for (auto entity1 : collidableView) {
-		// For each other collidable entity
-		for (auto entity2 : collidableView) {
-			// Skip self-collision
-			if (entity1 == entity2) continue;
-
-			// Check if the entities are colliding
-			if (GAME::AreEntitiesColliding(registry, entity1, entity2)) {
-				// Handle the collision
-				GAME::HandleCollision(registry, entity1, entity2);
+				// Check if the entities are colliding
+				if (GAME::AreEntitiesColliding(registry, entity1, entity2)) {
+					// Handle the collision
+					GAME::HandleCollision(registry, entity1, entity2);
+				}
 			}
 		}
 	}
-}
 
-void HandleEnemyShattering(entt::registry& registry, entt::entity enemyEntity) {
-	// TODO: Implement enemy shattering logic
-	// For now, just destroy the enemy
-	registry.destroy(enemyEntity);
-	std::cout << "Enemy shattered!" << std::endl;
-}
-
-void AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName) {
-	// Get the wall's position
-	GW::MATH::GVECTORF wallPos;
-	GW::MATH::GMatrix::GetTranslationF(transform, wallPos);
-
-	// Get the wall's mesh collection
-	auto& meshCollection = registry.get<MeshCollection>(wallEntity);
-
-	// Determine which wall this is based on position and adjust collider accordingly
-	if (wallPos.x < -15.0f) {
-		// Left wall
-		meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-		meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
+	void HandleEnemyShattering(entt::registry& registry, entt::entity enemyEntity) {
+		// TODO: Implement enemy shattering logic
+		// For now, just destroy the enemy
+		registry.destroy(enemyEntity);
+		std::cout << "Enemy shattered!" << std::endl;
 	}
-	else if (wallPos.x > 15.0f) {
-		// Right wall
-		meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-		meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
-	}
-	else if (wallPos.z > 15.0f) {
-		// Top wall
-		meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-		meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
-	}
-	else if (wallPos.z < -15.0f) {
-		// Bottom wall
-		meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-		meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
-	}
-}
 }// namespace GAME
