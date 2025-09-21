@@ -256,7 +256,7 @@ void GameplayBehavior(entt::registry& registry)
 
 	GAudio& gAudio = registry.ctx().emplace<GAudio>();
 	gAudio.Create();
-	gAudio.SetMasterVolume(25.0f);
+	gAudio.SetMasterVolume(100.0f);
 
 	GMusic& gMusic = registry.ctx().emplace<GMusic>();
 	gMusic.Create("../Audio/bg_music.wav", gAudio);
