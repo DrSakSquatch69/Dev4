@@ -193,7 +193,7 @@ namespace GAME {
 					// Left wall (negative X)
 					std::cout << "CREATING LEFT WALL COLLIDER" << std::endl;
 					meshCollection.collider.extent = {
-						2.0f,                // Half thickness (X) - made thicker
+						0.5f,                // Half thickness (X) - thin but effective
 						15.0f,               // Half height (Y) - much taller - assuming the wall is about 10 units tall
 						25.0f                // Half length (Z) - much longer - assuming the wall is about 20 units long
 					};
@@ -202,7 +202,7 @@ namespace GAME {
 					// Right wall (positive X)
 					std::cout << "CREATING RIGHT WALL COLLIDER" << std::endl;
 					meshCollection.collider.extent = {
-						2.0f,                // Half thickness (X) - made thicker
+						0.5f,                // Half thickness (X) - thin but effective
 						15.0f,               // Half height (Y) - much taller
 						25.0f                // Half length (Z) - much longer
 					};
@@ -213,7 +213,7 @@ namespace GAME {
 					meshCollection.collider.extent = {
 						25.0f,               // Half width (X) - much wider
 						15.0f,               // Half height (Y) - much taller
-						2.0f                 // Half thickness (Z) - made thicker
+						0.5f                 // Half thickness (Z) - thin but effective
 					};
 				}
 				else if (wallPos.z < -15.0f) {
@@ -222,7 +222,7 @@ namespace GAME {
 					meshCollection.collider.extent = {
 						25.0f,               // Half width (X) - much wider
 						15.0f,               // Half height (Y) - much taller
-						2.0f                 // Half thickness (Z) - made thicker
+						0.5f                 // Half thickness (Z) - thin but effective
 					};
 				}
 				else {
@@ -717,25 +717,25 @@ namespace GAME {
 		if (wallPos.x < -15.0f) {
 			std::cout << "ADJUSTING LEFT WALL COLLIDER" << std::endl;
 			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-			meshCollection.collider.extent = { 2.0f, 15.0f, 25.0f };
+			meshCollection.collider.extent = { 0.5f, 15.0f, 25.0f };
 		}
 		// Right wall (positive X)
 		else if (wallPos.x > 15.0f) {
 			std::cout << "ADJUSTING RIGHT WALL COLLIDER" << std::endl;
 			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-			meshCollection.collider.extent = { 2.0f, 15.0f, 25.0f };
+			meshCollection.collider.extent = { 0.5f, 15.0f, 25.0f };
 		}
 		// Top wall (positive Z)
 		else if (wallPos.z > 15.0f) {
 			std::cout << "ADJUSTING TOP WALL COLLIDER" << std::endl;
 			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-			meshCollection.collider.extent = { 25.0f, 15.0f, 2.0f };
+			meshCollection.collider.extent = { 25.0f, 15.0f, 0.5f };
 		}
 		// Bottom wall (negative Z)
 		else if (wallPos.z < -15.0f) {
 			std::cout << "ADJUSTING BOTTOM WALL COLLIDER" << std::endl;
 			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-			meshCollection.collider.extent = { 25.0f, 15.0f, 2.0f };
+			meshCollection.collider.extent = { 25.0f, 15.0f, 0.5f };
 		}
 	}
 
