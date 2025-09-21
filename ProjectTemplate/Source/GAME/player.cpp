@@ -77,8 +77,20 @@ namespace GAME
 
 				// Set the bullet's position to the player's position
 				auto& bulletTransform = registry.get<Transform>(bulletEntity);
-				bulletTransform.matrix = transform.matrix; // Copy the player's transform
+				GW::MATH::GVECTORF playerPos;
+				GW::MATH::GMatrix::GetTranslationF(transform.matrix, playerPos);
 
+				// Set bullet position with proper matrix setup
+				GW::MATH::GMATRIXF identityMatrix;
+				GW::MATH::GMatrix::IdentityF(identityMatrix);
+				bulletTransform.matrix = identityMatrix;
+
+				// Adjust height to prevent floor spawning
+				playerPos.y += 1.0f;
+
+				// Set bullet position using proper translation
+				GW::MATH::GMatrix::TranslateGlobalF(bulletTransform.matrix, playerPos, bulletTransform.matrix);
+				
 				// Create a direction vector based on which arrow key was pressed
 				GW::MATH::GVECTORF bulletDirection = { 0.0f, 0.0f, 0.0f };
 				if (upKey > 0.0f) bulletDirection.z = 1.0f;

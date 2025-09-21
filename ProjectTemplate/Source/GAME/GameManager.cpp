@@ -4,6 +4,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+using namespace GW::MATH;
 using namespace GAME;
 
 namespace GAME {
@@ -57,61 +58,76 @@ namespace GAME {
 		UpdateVelocitySystem(registry, deltaTime);
 
 		// Check for collisions between entities
-		CheckCollisions(registry);
+		//CheckCollisions(registry);
+
+		
+		auto& collisions = registry.view<Transform, MeshCollection, Collidable>();
+		for (auto a = collisions.begin(); a != collisions.end(); a++)
+		{
+			auto colA = registry.get<MeshCollection>(*a).collider;
+			auto& transA = registry.get<Transform>(*a).matrix;
+
+			// Scale the extents
+			GVECTORF vecA;
+			GMatrix::GetScaleF(transA, vecA);
+			colA.extent.x = vecA.x;
+			colA.extent.y = vecA.y;
+			colA.extent.z = vecA.z;
+
+			//Transform the center
+			GMatrix::VectorXMatrixF(transA, colA.center, colA.center);
+
+			//Rotate
+			GQUATERNIONF qA;
+			GQuaternion::SetByMatrixF(transA, qA);
+			GQuaternion::MultiplyQuaternionF(colA.rotation, qA, colA.rotation);
+			 
+			auto b = a;
+			for (b++; b != collisions.end(); b++)
+			{
+				auto colB = registry.get<MeshCollection>(*b).collider;
+				auto& transB = registry.get<Transform>(*b).matrix;
+
+				// Scale the extents
+				GVECTORF vecB;
+				GMatrix::GetScaleF(transB, vecB);
+				colB.extent.x = vecB.x;
+				colB.extent.y = vecB.y;
+				colB.extent.z = vecB.z;
+
+				//Transform the center
+				GMatrix::VectorXMatrixF(transB, colB.center, colB.center);
+
+				//Rotate
+				GQUATERNIONF qB;
+				GQuaternion::SetByMatrixF(transB, qB);
+				GQuaternion::MultiplyQuaternionF(colB.rotation, qB, colB.rotation);
+			
+				GCollision::GCollisionCheck result;
+				GCollision::TestOBBToOBBF(colA, colB, result);
+				if (GCollision::GCollisionCheck::COLLISION == result)
+				{
+					// These 2 are colliding!
+
+					//bullet to wall
+					if (registry.all_of<Bullet>(*a) && registry.all_of<Wall>(*b))
+					{
+						registry.destroy(*a);
+					}
+					if (registry.all_of<Bullet>(*b) && registry.all_of<Wall>(*a))
+					{
+						registry.destroy(*b);
+					}
+				}
+			}
+		}
+		
+
+
+
 
 		// Update GPU instances from Transform components 
 		UpdateGPUInstances(registry);
-	}
-
-
-	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
-		// Get the input from the registry context
-		auto& input = registry.ctx().get<UTIL::Input>();
-
-		// Find the player entity
-		auto playerView = registry.view<Player, Transform>();
-		if (playerView.begin() == playerView.end()) {
-			std::cout << "No player entity found" << std::endl;
-			return;
-		}
-
-		// Get the player entity and its transform
-		auto playerEntity = *playerView.begin();
-		auto& transform = registry.get<Transform>(playerEntity);
-
-		// Get the GameManager for player speed
-		auto& gameManager = registry.ctx().get<GameManager>();
-		float speed = gameManager.playerSpeed * deltaTime;
-
-		// Check for keyboard input
-		float rightKey = 0.0f, leftKey = 0.0f, upKey = 0.0f, downKey = 0.0f;
-		input.immediateInput.GetState(G_KEY_RIGHT, rightKey);
-		input.immediateInput.GetState(G_KEY_LEFT, leftKey);
-		input.immediateInput.GetState(G_KEY_UP, upKey);
-		input.immediateInput.GetState(G_KEY_DOWN, downKey);
-
-		// Movement vectors
-		GW::MATH::GVECTORF movement = { 0.0f, 0.0f, 0.0f };
-
-		// Check arrow keys for movement using the key states we retrieved
-		if (rightKey > 0.0f) {
-			movement.x += speed;
-		}
-		if (leftKey > 0.0f) {
-			movement.x -= speed;
-		}
-		if (upKey > 0.0f) {
-			movement.z += speed;
-		}
-		if (downKey > 0.0f) {
-			movement.z -= speed;
-		}
-
-		// Apply movement to transform
-		if (movement.x != 0.0f || movement.z != 0.0f) {
-			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
-			std::cout << "Player moved: " << movement.x << ", " << movement.z << std::endl;
-		}
 	}
 
 	void UpdateGPUInstances(entt::registry& registry) {
@@ -281,7 +297,6 @@ namespace GAME {
 	void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName) {
 		modelCollections[collectionName].push_back(entity);
 	}
-
 
 	std::vector<entt::entity> GetEntitiesFromCollection(entt::registry& registry, const std::string& collectionName) {
 		if (modelCollections.find(collectionName) != modelCollections.end()) {
@@ -743,7 +758,7 @@ namespace GAME {
 	// Check for collisions between collidable entities
 	void CheckCollisions(entt::registry& registry) {
 		// Get all entities with Transform, MeshCollection, and Collidable components
-		auto collidableView = registry.view<Transform, MeshCollection, Collidable>();
+		auto& collidableView = registry.view<Transform, MeshCollection, Collidable>();
 		
 		// Collect collision pairs to process
 		std::vector<std::pair<entt::entity, entt::entity>> collisionPairs;
