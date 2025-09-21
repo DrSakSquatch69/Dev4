@@ -11,28 +11,6 @@ namespace GAME {
 		std::cout << "GameManager initialized" << std::endl;
 	}
 
-	void UpdateGameManager(entt::registry& registry, float deltaTime) {
-		// Get the GameManager from the registry context
-		auto& gameManager = registry.ctx().get<GameManager>();
-		// Handle keyboard input for toggling visibility 
-		HandleVisibilityToggleInput(registry);
-
-		// Update player entities (will use the Player component's on_update method) 
-		auto playerView = registry.view<Player>();
-		for (auto entity : playerView) {
-			registry.patch<Player>(entity); // This will trigger the Player's on_update method 
-		}
-
-		// Update positions based on velocity
-		UpdateVelocitySystem(registry, deltaTime);
-
-		// Check for collisions between entities
-		CheckCollisions(registry);
-
-		// Update GPU instances from Transform components 
-		UpdateGPUInstances(registry);
-	}
-
 	void UpdateVelocitySystem(entt::registry& registry, float deltaTime) {
 		// Get all entities with Transform and Velocity components
 		auto velocityView = registry.view<Transform, Velocity>();
@@ -59,6 +37,29 @@ namespace GAME {
 			}
 		}
 	}
+	
+	void UpdateGameManager(entt::registry& registry, float deltaTime) {
+		// Get the GameManager from the registry context
+		auto& gameManager = registry.ctx().get<GameManager>();
+		// Handle keyboard input for toggling visibility 
+		HandleVisibilityToggleInput(registry);
+
+		// Update player entities (will use the Player component's on_update method) 
+		auto playerView = registry.view<Player>();
+		for (auto entity : playerView) {
+			registry.patch<Player>(entity); // This will trigger the Player's on_update method 
+		}
+
+		// Update positions based on velocity
+		UpdateVelocitySystem(registry, deltaTime);
+
+		// Check for collisions between entities
+		CheckCollisions(registry);
+
+		// Update GPU instances from Transform components 
+		UpdateGPUInstances(registry);
+	}
+
 
 	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
 		// Get the input from the registry context
@@ -129,7 +130,6 @@ namespace GAME {
 		}
 	}
 
-tvoid CreateWalls(entt::registry& registry) {
 void CreateWalls(entt::registry& registry) {
     // Find all static, collidable objects in the level data
     auto levelView = registry.view<DRAW::CPULevel>();
