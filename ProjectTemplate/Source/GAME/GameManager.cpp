@@ -765,4 +765,32 @@ void CheckCollisions(entt::registry& registry) {
 		std::cout << "Enemy shattered!" << std::endl;
 	}
 
+\tvoid AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName) {
+		// Get the wall's position
+		GW::MATH::GVECTORF wallPos;
+		GW::MATH::GMatrix::GetTranslationF(transform, wallPos);
+
+		// Get the wall's mesh collection
+		auto& meshCollection = registry.get<MeshCollection>(wallEntity);
+
+		// Determine which wall this is based on position and adjust collider accordingly
+		if (wallPos.x < -15.0f) {
+			// Left wall
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
+		} else if (wallPos.x > 15.0f) {
+			// Right wall
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { 1.0f, 10.0f, 20.0f };
+		} else if (wallPos.z > 15.0f) {
+			// Top wall
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
+		} else if (wallPos.z < -15.0f) {
+			// Bottom wall
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { 20.0f, 10.0f, 1.0f };
+		}
+	}
+
 }// namespace GAME
