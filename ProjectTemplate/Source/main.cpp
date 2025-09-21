@@ -88,9 +88,9 @@ void GraphicsBehavior(entt::registry& registry)
 	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{ LevelFile, ModelPath });
 
 	CreatePlayer(registry);
-        
-        // Create walls from level data
-        GAME::CreateWalls(registry);
+
+	// Create walls from level data
+	GAME::CreateWalls(registry);
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
@@ -258,7 +258,7 @@ void GameplayBehavior(entt::registry& registry)
 	using namespace GW::AUDIO;
 
 	GAudio& gAudio = registry.ctx().emplace<GAudio>();
-	gAudio.Create(); 
+	gAudio.Create();
 
 	GMusic& gMusic = registry.ctx().emplace<GMusic>();
 	gMusic.Create("../Audio/bg_music.wav", gAudio);
@@ -314,21 +314,21 @@ void GameplayBehavior(entt::registry& registry)
 		// Create enemy entity
 		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 		registry.emplace<GAME::Enemy>(enemyEntity);
-		
+
 		// Add Collidable tag to enemy for collision detection if not already added
 		if (!registry.all_of<GAME::Collidable>(enemyEntity)) {
 			registry.emplace<GAME::Collidable>(enemyEntity);
 		}
-		
+
 		// Add velocity component to enemy with random direction
 		GW::MATH::GVECTORF randomDirection = UTIL::GetRandomVelocityVector();
 		float enemySpeed = 5.0f; // Set an appropriate speed for the enemy
 		registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, enemySpeed);
-		
-		std::cout << "Enemy entity created with velocity: (" 
-			<< randomDirection.x << ", " 
-			<< randomDirection.y << ", " 
-			<< randomDirection.z << ") and speed: " 
+
+		std::cout << "Enemy entity created with velocity: ("
+			<< randomDirection.x << ", "
+			<< randomDirection.y << ", "
+			<< randomDirection.z << ") and speed: "
 			<< enemySpeed << std::endl;
 
 		// Set initial visibility

@@ -9,7 +9,7 @@ namespace GAME
     struct Bullet {};      // Tag to identify bullet entity
     struct Wall {};        // Tag to identify wall entities
     struct Collidable {};  // Tag for entities that participate in collision detection
-
+    struct ToDestroy {};   // Tag for deletion
     //*** Components ***//
     struct Transform {
         GW::MATH::GMATRIXF matrix;
