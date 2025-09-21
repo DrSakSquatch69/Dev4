@@ -270,14 +270,15 @@ namespace GAME {
 				std::cout << "Wall entity created from model: " << collectionName << std::endl;
 			}
 		}
-
-		// Map to store collections of entities by name
-		std::map<std::string, std::vector<entt::entity>> modelCollections;
-
-		void AddEntityToCollection(entt::registry & registry, entt::entity entity, const std::string & collectionName) {
-			modelCollections[collectionName].push_back(entity);
-		}
 	}
+
+	// Map to store collections of entities by name
+	std::map<std::string, std::vector<entt::entity>> modelCollections;
+
+	void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName) {
+		modelCollections[collectionName].push_back(entity);
+	}
+
 
 	std::vector<entt::entity> GetEntitiesFromCollection(entt::registry& registry, const std::string& collectionName) {
 		if (modelCollections.find(collectionName) != modelCollections.end()) {
