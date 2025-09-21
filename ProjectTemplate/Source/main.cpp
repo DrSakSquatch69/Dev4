@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // main entry point for the application
 // enables components to define their behaviors locally in an .hpp file
 #include "CCL.h"
@@ -363,7 +362,6 @@ void MainLoopBehavior(entt::registry& registry)
 				registry.patch<APP::Window>(entity); // calls on_update()
 		}
 	} while (winView.size() != closedCount); // exit when all windows are closed
-=======
 // main entry point for the application
 // enables components to define their behaviors locally in an .hpp file
 #include "CCL.h"
@@ -734,5 +732,3 @@ void MainLoopBehavior(entt::registry& registry)
 				registry.patch<APP::Window>(entity); // calls on_update()
 		}
 	} while (winView.size() != closedCount); // exit when all windows are closed
->>>>>>> d8df6db0e68ae3fbae0fbba3b05733db619796e6
-}
