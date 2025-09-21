@@ -152,7 +152,7 @@ void CreateWalls(entt::registry& registry) {
             // Create a game entity for this wall
             std::string modelName = model.filename;
             std::string collectionName = modelName;
-            size_t lastSlash = collectionName.find_last_of("/\&quot;);
+            size_t lastSlash = collectionName.find_last_of("/\");
             if (lastSlash != std::string::npos)
                 collectionName = collectionName.substr(lastSlash + 1);
 
@@ -270,10 +270,6 @@ void CreateWalls(entt::registry& registry) {
             std::cout << "Wall entity created from model: " << collectionName << std::endl;
         }
     }
-}
-		}
-	}
-
 
 	// Map to store collections of entities by name
 	std::map<std::string, std::vector<entt::entity>> modelCollections;
@@ -444,7 +440,6 @@ void CreateWalls(entt::registry& registry) {
 	}
 
 	// Check if two entities are colliding
-tbool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::entity entity2) {
 bool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::entity entity2) {
     // Get the transforms and mesh collections for both entities
     auto& transform1 = registry.get<Transform>(entity1);

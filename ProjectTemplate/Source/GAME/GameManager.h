@@ -20,6 +20,8 @@ namespace GAME
 
     // Update the GameManager
     void UpdateGameManager(entt::registry& registry, float deltaTime);
+    // Update velocity system for moving entities
+    void UpdateVelocitySystem(entt::registry& registry, float deltaTime);
 
     // on_update method for the GameManager component
     void on_update(entt::registry& registry, entt::entity entity);
