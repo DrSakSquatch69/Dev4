@@ -758,4 +758,11 @@ void CheckCollisions(entt::registry& registry) {
 		}
 	}
 
+\tvoid HandleEnemyShattering(entt::registry& registry, entt::entity enemyEntity) {
+		// TODO: Implement enemy shattering logic
+		// For now, just destroy the enemy
+		registry.destroy(enemyEntity);
+		std::cout << "Enemy shattered!" << std::endl;
+	}
+
 }// namespace GAME

@@ -64,6 +64,9 @@ namespace GAME
 
     // Handle keyboard input for toggling visibility
     void HandleVisibilityToggleInput(entt::registry& registry);
+    
+    // Handle enemy shattering when hit by bullets
+    void HandleEnemyShattering(entt::registry& registry, entt::entity enemyEntity);
 }
 
 #endif // GAME_MANAGER_H
