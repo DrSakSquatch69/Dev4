@@ -665,6 +665,7 @@ bool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::
 				0.0f,
 				enemyVelocity.direction.z * 0.5f
 			};
+
 			GW::MATH::GMatrix::TranslateGlobalF(enemyTransform.matrix, pushOut, enemyTransform.matrix);
 			
 			std::cout << "Enemy bounced off wall with new direction: (" 
