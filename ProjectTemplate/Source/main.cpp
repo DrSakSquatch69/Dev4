@@ -346,7 +346,7 @@ void GameplayBehavior(entt::registry& registry)
 // This function will be called by the main loop to update the main loop
 // It will be responsible for updating any created windows and handling any input
 void MainLoopBehavior(entt::registry& registry)
-{	
+{
 	// main loop
 	int closedCount; // count of closed windows
 	auto winView = registry.view<APP::Window>(); // for updating all windows
@@ -359,7 +359,7 @@ void MainLoopBehavior(entt::registry& registry)
 			std::chrono::steady_clock::now() - start).count();
 		start = std::chrono::steady_clock::now();
 		// Cap delta time to min 30 fps. This will prevent too much time from simulating when dragging the window
-		if(elapsed > 1.0 / 30.0)
+		if (elapsed > 1.0 / 30.0)
 		{
 			elapsed = 1.0 / 30.0;
 		}
@@ -380,3 +380,4 @@ void MainLoopBehavior(entt::registry& registry)
 				registry.patch<APP::Window>(entity); // calls on_update()
 		}
 	} while (winView.size() != closedCount); // exit when all windows are closed
+}
