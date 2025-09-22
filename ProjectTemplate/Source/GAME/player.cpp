@@ -109,7 +109,14 @@ namespace GAME
 				// Add the Velocity component to the bullet
 				float bulletSpeed = 10.0f; // Bullets move faster than the player
 				registry.emplace<Velocity>(bulletEntity, bulletDirection, bulletSpeed);
-
+				// Verify the velocity component was added correctly
+				if (registry.all_of<Velocity>(bulletEntity)) {
+					auto& vel = registry.get<Velocity>(bulletEntity);
+					std::cout << "Verified bullet velocity: direction=(" << vel.direction.x << ", " << vel.direction.y << ", " << vel.direction.z << "), speed=" << vel.speed << std::endl;
+				}
+				else {
+					std::cout << "ERROR: Velocity component not added to bullet!" << std::endl;
+				}
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
 
