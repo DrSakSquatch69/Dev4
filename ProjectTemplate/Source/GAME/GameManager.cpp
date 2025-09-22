@@ -37,7 +37,19 @@ namespace GAME {
 
 			// Debug output
 			if (registry.all_of<Bullet>(entity)) {
-				std::cout << "Bullet moved: " << movement.x << ", " << movement.z << std::endl;
+				// Debug output
+				std::cout << "Bullet moved: " << movement.x << ", " << movement.y << ", " << movement.z << std::endl;
+				std::cout << "Bullet velocity: direction=(" << velocity.direction.x << ", " << velocity.direction.y << ", " << velocity.direction.z << "), speed=" << velocity.speed << std::endl;
+
+				// Also update GPU instances immediately after moving
+				auto& meshCollection = registry.get<MeshCollection>(entity);
+				for (auto meshEntity : meshCollection.meshEntities) {
+					if (registry.all_of<DRAW::GPUInstance>(meshEntity)) {
+						auto& gpuInstance = registry.get<DRAW::GPUInstance>(meshEntity);
+						gpuInstance.transform = transform.matrix;
+						std::cout << "Updated GPU instance for bullet" << std::endl;
+					}
+				}
 			}
 		}
 	}

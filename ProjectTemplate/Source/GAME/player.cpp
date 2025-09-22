@@ -113,6 +113,14 @@ namespace GAME
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
 
+				auto& meshCollection = registry.get<MeshCollection>(bulletEntity);
+				for (auto meshEntity : meshCollection.meshEntities) {
+					if (registry.all_of<DRAW::GPUInstance>(meshEntity)) {
+						auto& gpuInstance = registry.get<DRAW::GPUInstance>(meshEntity);
+						gpuInstance.transform = bulletTransform.matrix;
+					}
+				}
+
 				std::cout << "Bullet fired with direction: " << bulletDirection.x << ", " << bulletDirection.z << std::endl;
 			}
 		}
