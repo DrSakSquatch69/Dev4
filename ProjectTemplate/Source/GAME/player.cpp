@@ -99,6 +99,13 @@ namespace GAME
 				if (leftKey > 0.0f) bulletDirection.x = -1.0f;
 				if (rightKey > 0.0f) bulletDirection.x = 1.0f;
 
+				// Make sure we have a non-zero direction
+				if (bulletDirection.x == 0.0f && bulletDirection.z == 0.0f) {
+					// Default to forward direction if no key was pressed
+					bulletDirection.z = 1.0f;
+					std::cout << "WARNING: No direction key pressed, defaulting to forward direction" << std::endl;
+				}
+
 				// Normalize the direction vector if needed
 				if (bulletDirection.x != 0.0f && bulletDirection.z != 0.0f) {
 					float length = std::sqrt(bulletDirection.x * bulletDirection.x + bulletDirection.z * bulletDirection.z);
@@ -106,9 +113,10 @@ namespace GAME
 					bulletDirection.z /= length;
 				}
 
-				// Add the Velocity component to the bullet
-				float bulletSpeed = 10.0f; // Bullets move faster than the player
+				// Add the Velocity component to the bullet with higher speed
+				float bulletSpeed = 20.0f; // Increase bullet speed for better visibility
 				registry.emplace<Velocity>(bulletEntity, bulletDirection, bulletSpeed);
+
 				// Verify the velocity component was added correctly
 				if (registry.all_of<Velocity>(bulletEntity)) {
 					auto& vel = registry.get<Velocity>(bulletEntity);

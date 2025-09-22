@@ -18,6 +18,12 @@ namespace GAME {
 	void UpdateVelocitySystem(entt::registry& registry, float deltaTime) {
 		std::cout << "UpdateVelocitySystem called with deltaTime: " << deltaTime << std::endl;
 
+		// IMPORTANT: Make sure deltaTime is not zero or negative
+		if (deltaTime <= 0.0f) {
+			std::cout << "WARNING: deltaTime is zero or negative, using default value" << std::endl;
+			deltaTime = 0.016f; // Default to 60fps
+		}
+
 		// Get all entities with Transform and Velocity components
 		auto velocityView = registry.view<Transform, Velocity>();
 
@@ -27,6 +33,22 @@ namespace GAME {
 			auto& transform = registry.get<Transform>(entity);
 			auto& velocity = registry.get<Velocity>(entity);
 
+			// Make sure velocity direction is not zero
+			bool isZeroDirection = (velocity.direction.x == 0.0f &&
+				velocity.direction.y == 0.0f &&
+				velocity.direction.z == 0.0f);
+
+			if (isZeroDirection) {
+				std::cout << "WARNING: Entity has zero velocity direction" << std::endl;
+				continue; // Skip this entity
+			}
+
+			// Make sure speed is not zero
+			if (velocity.speed <= 0.0f) {
+				std::cout << "WARNING: Entity has zero or negative speed" << std::endl;
+				continue; // Skip this entity
+			}
+
 			// Calculate movement based on velocity and delta time
 			GW::MATH::GVECTORF movement = {
 				velocity.direction.x * velocity.speed * deltaTime,
@@ -34,14 +56,21 @@ namespace GAME {
 				velocity.direction.z * velocity.speed * deltaTime
 			};
 
+			// Store original position for debugging
+			GW::MATH::GVECTORF originalPos = {
+				transform.matrix.row4.x,
+				transform.matrix.row4.y,
+				transform.matrix.row4.z
+			};
+
 			// Apply movement to transform
 			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
 
 			// Debug output and immediate GPU update for bullets
 			if (registry.all_of<Bullet>(entity)) {
-				std::cout << "Bullet moved: " << movement.x << ", " << movement.y << ", " << movement.z << std::endl;
-				std::cout << "Bullet velocity: direction=(" << velocity.direction.x << ", " << velocity.direction.y << ", " << velocity.direction.z << "), speed=" << velocity.speed << std::endl;
-				std::cout << "Bullet position: " << transform.matrix.row4.x << ", " << transform.matrix.row4.y << ", " << transform.matrix.row4.z << std::endl;
+				std::cout << "Bullet moved from: (" << originalPos.x << ", " << originalPos.y << ", " << originalPos.z << ")" << std::endl;
+				std::cout << "Bullet moved to: (" << transform.matrix.row4.x << ", " << transform.matrix.row4.y << ", " << transform.matrix.row4.z << ")" << std::endl;
+				std::cout << "Movement vector: (" << movement.x << ", " << movement.y << ", " << movement.z << ")" << std::endl;
 
 				// CRITICAL FIX: Update GPU instances immediately after moving
 				auto& meshCollection = registry.get<MeshCollection>(entity);
