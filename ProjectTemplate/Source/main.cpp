@@ -255,15 +255,6 @@ void GameplayBehavior(entt::registry& registry)
 	// Get the config file
 	std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
 
-	using namespace GW::AUDIO;
-
-	GAudio& gAudio = registry.ctx().emplace<GAudio>();
-	gAudio.Create();
-
-	GMusic& gMusic = registry.ctx().emplace<GMusic>();
-	gMusic.Create("../Audio/bg_music.wav", gAudio);
-	gMusic.Play(true);
-
 	// Calculate delta time
 	static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
