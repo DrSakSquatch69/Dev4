@@ -20,8 +20,6 @@ namespace GAME
 
     // Update the GameManager
     void UpdateGameManager(entt::registry& registry, float deltaTime);
-    // Update velocity system for moving entities
-    void UpdateVelocitySystem(entt::registry& registry, float deltaTime);
 
     // on_update method for the GameManager component
     void on_update(entt::registry& registry, entt::entity entity);
@@ -31,24 +29,6 @@ namespace GAME
 
     // Update GPU instances from Transform components
     void UpdateGPUInstances(entt::registry& registry);
-
-    // Create wall entities from level data
-    void CreateWalls(entt::registry& registry);
-    
-    // Adjust wall collider based on position
-    void AdjustWallCollider(entt::registry& registry, entt::entity wallEntity, const GW::MATH::GMATRIXF& transform, const std::string& wallName);
-
-    // Check for collisions between collidable entities
-    void CheckCollisions(entt::registry& registry);
-
-    // Handle collision between two entities
-    void HandleCollision(entt::registry& registry, entt::entity entity1, entt::entity entity2);
-    
-    // Handle collision between two entities with deferred destruction
-    void HandleCollisionDeferred(entt::registry& registry, entt::entity entity1, entt::entity entity2, std::vector<entt::entity>& entitiesToDestroy);
-
-    // Check if two entities are colliding
-    bool AreEntitiesColliding(entt::registry& registry, entt::entity entity1, entt::entity entity2);
 
     // Add an entity to a named collection
     void AddEntityToCollection(entt::registry& registry, entt::entity entity, const std::string& collectionName);
@@ -67,9 +47,6 @@ namespace GAME
 
     // Handle keyboard input for toggling visibility
     void HandleVisibilityToggleInput(entt::registry& registry);
-    
-    // Handle enemy shattering when hit by bullets
-    void HandleEnemyShattering(entt::registry& registry, entt::entity enemyEntity);
 }
 
 #endif // GAME_MANAGER_H

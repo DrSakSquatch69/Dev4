@@ -71,72 +71,15 @@ namespace GAME
 
 				// Add the Bullet tag
 				registry.emplace<Bullet>(bulletEntity);
-				
-				// Add the Collidable tag to make bullets participate in collision detection
-				registry.emplace<Collidable>(bulletEntity);
 
 				// Set the bullet's position to the player's position
-				     auto& bulletTransform = registry.get<Transform>(bulletEntity); // Get the BULLET's transform
-				GW::MATH::GVECTORF playerPos;
-				GW::MATH::GMatrix::GetTranslationF(transform.matrix, playerPos);
+				auto& bulletTransform = registry.get<Transform>(bulletEntity);
+				bulletTransform.matrix = transform.matrix; // Copy the player's transform
 
-				// Completely override the bullet's transform with player position
-				// Start with identity matrix
-				GW::MATH::GMatrix::IdentityF(bulletTransform.matrix);
-
-				// Adjust height to prevent floor spawning
-				playerPos.y += 1.0f;
-
-				// Set bullet position directly in the matrix
-				bulletTransform.matrix.row4.x = playerPos.x;
-				bulletTransform.matrix.row4.y = playerPos.y;
-				bulletTransform.matrix.row4.z = playerPos.z;
-
-				// Create a direction vector based on which arrow key was pressed
-				GW::MATH::GVECTORF bulletDirection = { 0.0f, 0.0f, 0.0f };
-				if (upKey > 0.0f) bulletDirection.z = 1.0f;
-				if (downKey > 0.0f) bulletDirection.z = -1.0f;
-				if (leftKey > 0.0f) bulletDirection.x = -1.0f;
-				if (rightKey > 0.0f) bulletDirection.x = 1.0f;
-
-				// Make sure we have a non-zero direction
-				if (bulletDirection.x == 0.0f && bulletDirection.z == 0.0f) {
-					// Default to forward direction if no key was pressed
-					bulletDirection.z = 1.0f;
-					std::cout << "WARNING: No direction key pressed, defaulting to forward direction" << std::endl;
-				}
-
-				// Normalize the direction vector if needed
-				if (bulletDirection.x != 0.0f && bulletDirection.z != 0.0f) {
-					float length = std::sqrt(bulletDirection.x * bulletDirection.x + bulletDirection.z * bulletDirection.z);
-					bulletDirection.x /= length;
-					bulletDirection.z /= length;
-				}
-
-				// Add the Velocity component to the bullet with higher speed
-				float bulletSpeed = 20.0f; // Increase bullet speed for better visibility
-				registry.emplace<Velocity>(bulletEntity, bulletDirection, bulletSpeed);
-
-				// Verify the velocity component was added correctly
-				if (registry.all_of<Velocity>(bulletEntity)) {
-					auto& vel = registry.get<Velocity>(bulletEntity);
-					std::cout << "Verified bullet velocity: direction=(" << vel.direction.x << ", " << vel.direction.y << ", " << vel.direction.z << "), speed=" << vel.speed << std::endl;
-				}
-				else {
-					std::cout << "ERROR: Velocity component not added to bullet!" << std::endl;
-				}
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
 
-				auto& meshCollection = registry.get<MeshCollection>(bulletEntity);
-				for (auto meshEntity : meshCollection.meshEntities) {
-					if (registry.all_of<DRAW::GPUInstance>(meshEntity)) {
-						auto& gpuInstance = registry.get<DRAW::GPUInstance>(meshEntity);
-						gpuInstance.transform = bulletTransform.matrix;
-					}
-				}
-
-				std::cout << "Bullet fired with direction: " << bulletDirection.x << ", " << bulletDirection.z << std::endl;
+				std::cout << "Bullet fired!" << std::endl;
 			}
 		}
 	}

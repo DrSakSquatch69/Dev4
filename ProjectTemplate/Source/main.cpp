@@ -21,7 +21,7 @@ int main()
 {
 
 	// All components, tags, and systems are stored in a single registry
-	entt::registry registry;
+	entt::registry registry;	
 
 	// initialize the ECS Component Logic
 	CCL::InitializeComponentLogic(registry);
@@ -37,14 +37,14 @@ int main()
 	GraphicsBehavior(registry); // create windows, surfaces, and renderers
 
 	GameplayBehavior(registry); // create entities and components for gameplay
-
+	
 	MainLoopBehavior(registry); // update windows and input
 
-
+	
 	// clear all entities and components from the registry
 	// invokes on_destroy() for all components that have it
 	// registry will still be intact while this is happening
-	registry.clear();
+	registry.clear(); 
 
 	return 0; // now destructors will be called for all components
 }
@@ -85,12 +85,9 @@ void GraphicsBehavior(entt::registry& registry)
 	auto ModelPath = (*config).at("Level1").at("modelPath").as<std::string>();
 
 	// TODO: Emplace CPULevel. Placing here to reduce occurrence of a json race condition crash
-	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{ LevelFile, ModelPath });
+	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{LevelFile, ModelPath});
 
 	CreatePlayer(registry);
-
-	// Create walls from level data
-	GAME::CreateWalls(registry);
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
@@ -98,11 +95,11 @@ void GraphicsBehavior(entt::registry& registry)
 	int startX = (*config).at("Window").at("xstart").as<int>();
 	int startY = (*config).at("Window").at("ystart").as<int>();
 	registry.emplace<APP::Window>(display,
-		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2" });
+		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2"});
 
 
 	// Create the input
-	auto& input = registry.ctx().emplace<UTIL::Input>();
+	auto& input =  registry.ctx().emplace<UTIL::Input>();
 	auto& window = registry.get<GW::SYSTEM::GWindow>(display);
 	input.bufferedInput.Create(window);
 	input.immediateInput.Create(window);
@@ -116,11 +113,11 @@ void GraphicsBehavior(entt::registry& registry)
 	std::string vertShader = (*config).at("Shaders").at("vertex").as<std::string>();
 	std::string pixelShader = (*config).at("Shaders").at("pixel").as<std::string>();
 	registry.emplace<DRAW::VulkanRendererInitialization>(display,
-		DRAW::VulkanRendererInitialization{
+		DRAW::VulkanRendererInitialization{ 
 			vertShader, pixelShader,
 			{ {0.2f, 0.2f, 0.25f, 1} } , { 1.0f, 0u }, 75.f, 0.1f, 100.0f });
 	registry.emplace<DRAW::VulkanRenderer>(display);
-
+	
 	// TODO : Emplace GPULevel
 	registry.emplace<DRAW::GPULevel>(display);
 
@@ -205,42 +202,6 @@ entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::stri
 			// Add the mesh entity to the game entity's MeshCollection
 			meshCollection.meshEntities.push_back(meshEntity);
 		}
-
-		// Find the collider for this model in the level data
-		auto levelView = registry.view<DRAW::CPULevel>();
-		if (!levelView.empty()) {
-			auto levelEntity = *levelView.begin();
-			auto& cpuLevel = registry.get<DRAW::CPULevel>(levelEntity);
-
-			// Look for the model in the level data
-			for (const auto& model : cpuLevel.lvlData.levelModels) {
-				std::string filename = model.filename;
-				size_t lastSlash = filename.find_last_of("/\\");
-				if (lastSlash != std::string::npos)
-					filename = filename.substr(lastSlash + 1);
-
-				size_t lastDot = filename.find_last_of(".");
-				if (lastDot != std::string::npos)
-					filename = filename.substr(0, lastDot);
-
-				// If this is the model we're looking for
-				if (filename == modelName) {
-					// Get the collider
-					if (model.colliderIndex < cpuLevel.lvlData.levelColliders.size()) {
-						// Set the collider in the MeshCollection
-						meshCollection.collider = cpuLevel.lvlData.levelColliders[model.colliderIndex];
-						std::cout << "Added collider to " << modelName << std::endl;
-
-						// If the model is collidable, add the Collidable tag
-						if (model.isCollidable) {
-							registry.emplace<GAME::Collidable>(gameEntity);
-							std::cout << "Added Collidable tag to " << modelName << std::endl;
-						}
-					}
-					break;
-				}
-			}
-		}
 	}
 	else
 	{
@@ -252,9 +213,6 @@ entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::stri
 
 void GameplayBehavior(entt::registry& registry)
 {
-	// Get the config file
-	std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
-
 	// Calculate delta time
 	static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
@@ -274,6 +232,9 @@ void GameplayBehavior(entt::registry& registry)
 	static bool entitiesCreated = false;
 	if (!entitiesCreated)
 	{
+		// Get the config file
+		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
+
 		// Get model names from config with error checking
 		std::string playerModelName = "Turtle"; // Default value
 		std::string enemyModelName = "Cactus";  // Default value
@@ -305,22 +266,7 @@ void GameplayBehavior(entt::registry& registry)
 		// Create enemy entity
 		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 		registry.emplace<GAME::Enemy>(enemyEntity);
-
-		// Add Collidable tag to enemy for collision detection if not already added
-		if (!registry.all_of<GAME::Collidable>(enemyEntity)) {
-			registry.emplace<GAME::Collidable>(enemyEntity);
-		}
-
-		// Add velocity component to enemy with random direction
-		GW::MATH::GVECTORF randomDirection = UTIL::GetRandomVelocityVector();
-		float enemySpeed = 5.0f; // Set an appropriate speed for the enemy
-		registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, enemySpeed);
-
-		std::cout << "Enemy entity created with velocity: ("
-			<< randomDirection.x << ", "
-			<< randomDirection.y << ", "
-			<< randomDirection.z << ") and speed: "
-			<< enemySpeed << std::endl;
+		std::cout << "Enemy entity created" << std::endl;
 
 		// Set initial visibility
 		auto& gameManager = registry.ctx().get<GAME::GameManager>();
@@ -337,7 +283,7 @@ void GameplayBehavior(entt::registry& registry)
 // This function will be called by the main loop to update the main loop
 // It will be responsible for updating any created windows and handling any input
 void MainLoopBehavior(entt::registry& registry)
-{
+{	
 	// main loop
 	int closedCount; // count of closed windows
 	auto winView = registry.view<APP::Window>(); // for updating all windows
@@ -350,7 +296,7 @@ void MainLoopBehavior(entt::registry& registry)
 			std::chrono::steady_clock::now() - start).count();
 		start = std::chrono::steady_clock::now();
 		// Cap delta time to min 30 fps. This will prevent too much time from simulating when dragging the window
-		if (elapsed > 1.0 / 30.0)
+		if(elapsed > 1.0 / 30.0)
 		{
 			elapsed = 1.0 / 30.0;
 		}
