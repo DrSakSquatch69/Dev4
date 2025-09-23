@@ -90,7 +90,7 @@ void GraphicsBehavior(entt::registry& registry)
 	CreatePlayer(registry);
 
 	// Create walls from level data
-	GAME::CreateWalls(registry);
+	//GAME::CreateWalls(registry);
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
