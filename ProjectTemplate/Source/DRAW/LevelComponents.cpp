@@ -79,29 +79,16 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
                     // Add Collidable tag to mark this entity as collidable
                     registry.emplace<GAME::Collidable>(meshEntity);
 
-                    std::cout << "Added collider to entity: " << collectionName << std::endl;
-                }
-                // Create obstacle entity for collidable walls/objects
-                if (model.isCollidable) {
-                    // Create a separate entity to represent the obstacle
-                    entt::entity obstacleEntity = registry.create();
-
                     // Add the Obstacle tag to identify this as a wall/obstacle
-                    registry.emplace<GAME::Obstacle>(obstacleEntity);
-
-                    // Add Collidable tag so it participates in collision detection
-                    registry.emplace<GAME::Collidable>(obstacleEntity);
+                    registry.emplace<GAME::Obstacle>(meshEntity);
 
                     // Add Transform component to track position/rotation
-                    auto& obstacleTransform = registry.emplace<GAME::Transform>(obstacleEntity);
+                    auto& obstacleTransform = registry.emplace<GAME::Transform>(meshEntity);
                     obstacleTransform.matrix = levelData.levelTransforms[blenderObj.transformIndex];
 
-                    // Add MeshCollection with the collider data
-                    auto& obstacleMeshCollection = registry.emplace<GAME::MeshCollection>(obstacleEntity);
-                    obstacleMeshCollection.collider = levelData.levelColliders[model.colliderIndex];
-
-                    std::cout << "Created obstacle entity for: " << collectionName << std::endl;
+                    std::cout << "Added collider to entity: " << collectionName << std::endl;
                 }
+                
                 // Add DoNotRender tag to dynamic meshes
                 if (model.isDynamic)
                 {
