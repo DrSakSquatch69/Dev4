@@ -36,9 +36,9 @@ namespace GAME {
 			// Scale the extents
 			GVECTORF vecA;
 			GMatrix::GetScaleF(transA, vecA);
-			colA.extent.x = vecA.x;
-			colA.extent.y = vecA.y;
-			colA.extent.z = vecA.z;
+			colA.extent.x *= vecA.x;
+			colA.extent.y *= vecA.y;
+			colA.extent.z *= vecA.z;
 
 			//Transform the center
 			GMatrix::VectorXMatrixF(transA, colA.center, colA.center);
@@ -57,9 +57,9 @@ namespace GAME {
 				// Scale the extents
 				GVECTORF vecB;
 				GMatrix::GetScaleF(transB, vecB);
-				colB.extent.x = vecB.x;
-				colB.extent.y = vecB.y;
-				colB.extent.z = vecB.z;
+				colB.extent.x *= vecB.x;
+				colB.extent.y *= vecB.y;
+				colB.extent.z *= vecB.z;
 
 				//Transform the center
 				GMatrix::VectorXMatrixF(transB, colB.center, colB.center);
