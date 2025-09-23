@@ -76,10 +76,36 @@ namespace GAME
 				auto& bulletTransform = registry.get<Transform>(bulletEntity);
 				bulletTransform.matrix = transform.matrix; // Copy the player's transform
 
-				// Add velocity to make the bullet move forward
-				GW::MATH::GVECTORF forward = { 0.0f, 0.0f, 1.0f };  // Forward in game coordinates
-				float bulletSpeed = 10.0f;  // 10 units per second
-				registry.emplace<Velocity>(bulletEntity, forward, bulletSpeed);
+				// Create directional velocity based on arrow key input
+				GW::MATH::GVECTORF direction = { 0.0f, 0.0f, 0.0f };
+
+				// Build direction vector based on which arrow keys are pressed
+				if (upKey > 0.0f) { direction.z += 1.0f; }    // Forward
+				if (downKey > 0.0f) { direction.z -= 1.0f; }  // Backward
+				if (leftKey > 0.0f) { direction.x -= 1.0f; }  // Left
+				if (rightKey > 0.0f) { direction.x += 1.0f; } // Right
+
+				// Normalize the direction vector if moving diagonally to maintain consistent speed
+				if (direction.x != 0.0f && direction.z != 0.0f) {
+					float length = std::sqrt(direction.x * direction.x + direction.z * direction.z);
+					direction.x /= length; direction.z /= length;
+				}
+
+				// Get bullet speed from tuning file
+				std::shared_ptr config = registry.ctx().get<UTIL::Config>().gameConfig;
+				float bulletSpeed = 20.0f; // Default value from defaults.ini
+
+				try {
+					std::string speedStr = config->at("Bullet").at("speed").as<std::string>();
+					bulletSpeed = std::stof(speedStr);
+				}
+				catch (const std::exception& e) {
+					std::cout << "Bullet speed not found in config, using default: " << e.what() << std::endl;
+					// Keep the default value
+				}
+
+				// Apply the directional velocity to the bullet
+				registry.emplace<Velocity>(bulletEntity, direction, bulletSpeed);
 
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown

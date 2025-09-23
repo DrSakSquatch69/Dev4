@@ -267,18 +267,26 @@ void GameplayBehavior(entt::registry& registry)
 		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 		registry.emplace<GAME::Enemy>(enemyEntity);
 		std::cout << "Enemy entity created" << std::endl;
-		
-		entt::entity enemy = CreateGameEntityFromModel(registry, "Enemy");
-		registry.emplace<GAME::Enemy>(enemy);
 
 		// Position the enemy somewhere visible
-		auto& transform = registry.get<GAME::Transform>(enemy);
+		auto& transform = registry.get<GAME::Transform>(enemyEntity);
 		transform.matrix.row4.z = -10.0f;  // 10 units in front of player
 
-		// Add velocity (moving right for now)
-		GW::MATH::GVECTORF right = { 1.0f, 0.0f, 0.0f };
-		registry.emplace<GAME::Velocity>(enemy, right, 3.0f);
+		// Generate a random direction vector
+		float randomAngle = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0f * 3.14159f; // Random angle in radians
+		GW::MATH::GVECTORF randomDirection = {
+			cosf(randomAngle), // X component
+			0.0f,              // Y component (keep on the horizontal plane)
+			sinf(randomAngle)  // Z component
+		};
 
+		// Normalize the direction vector
+		float length = sqrtf(randomDirection.x * randomDirection.x + randomDirection.z * randomDirection.z);
+		randomDirection.x /= length;
+		randomDirection.z /= length;
+
+		// Add velocity with the random direction
+		registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, 3.0f);
 		// Set initial visibility
 		auto& gameManager = registry.ctx().get<GAME::GameManager>();
 		GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
