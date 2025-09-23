@@ -112,15 +112,7 @@ namespace GAME
 					std::cout << "Bullet speed not found in config, using default: " << e.what() << std::endl;
 					// Keep the default value
 				}
-				// Add collider to bullet
-				if (registry.all_of<GAME::MeshCollection>(bulletEntity)) {
-					auto& bulletMeshCollection = registry.get<GAME::MeshCollection>(bulletEntity);
-					bulletMeshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
-					bulletMeshCollection.collider.extent = { 0.2f, 0.2f, 0.2f };
-					bulletMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-					registry.emplace<GAME::Collidable>(bulletEntity);
-					std::cout << "Added collider to bullet entity" << std::endl;
-				}
+				
 				// Apply the directional velocity to the bullet
 				registry.emplace<Velocity>(bulletEntity, direction, bulletSpeed);
 

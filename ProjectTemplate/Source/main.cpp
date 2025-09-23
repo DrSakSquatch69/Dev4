@@ -53,22 +53,15 @@ int main()
 
 void CreatePlayer(entt::registry& registry, entt::entity playerEntity)
 {
-	// Check if the entity has a MeshCollection component
-	if (registry.all_of<GAME::MeshCollection>(playerEntity) &&
-		!registry.get<GAME::MeshCollection>(playerEntity).meshEntities.empty()) {
-		// Add the Player tag to the entity
-		registry.emplace<GAME::Player>(playerEntity);
-
-		// Position the player at a suitable starting position
-		auto& transform = registry.get<GAME::Transform>(playerEntity);
-		GW::MATH::GVECTORF startPosition = { 0.0f, 0.0f, 0.0f };
-		GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, startPosition, transform.matrix);
-
-		std::cout << "Player entity created successfully" << std::endl;
+	// Always add required components
+	if (!registry.all_of<GAME::Transform>(playerEntity)) {
+		registry.emplace<GAME::Transform>(playerEntity);
 	}
-	else {
-		std::cout << "Failed to create player entity - model collection not found or empty" << std::endl;
+	if (!registry.all_of<GAME::MeshCollection>(playerEntity)) {
+		registry.emplace<GAME::MeshCollection>(playerEntity);
 	}
+	auto& transform = registry.get<GAME::Transform>(playerEntity);
+	
 	// Add collider to player if it has a MeshCollection
 	if (registry.all_of<GAME::MeshCollection>(playerEntity)) {
 		auto& playerMeshCollection = registry.get<GAME::MeshCollection>(playerEntity);
