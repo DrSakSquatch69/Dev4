@@ -92,8 +92,19 @@ namespace GAME {
 			}
 			for (auto ent : ToDestroy)
 			{
-				std::cout << "Destroying entity: " << (int)ent << std::endl;  
-				registry.destroy(ent);  
+				// If this entity has a MeshCollection, destroy all its mesh entities too
+				if (registry.all_of<MeshCollection>(ent)) {
+					auto& meshCollection = registry.get<MeshCollection>(ent);
+					std::cout << "  - Entity has " << meshCollection.meshEntities.size() << " mesh entities" << std::endl;
+
+					for (auto meshEntity : meshCollection.meshEntities) {
+						std::cout << "  - Destroying mesh entity: " << (int)meshEntity << std::endl;
+						registry.destroy(meshEntity);
+					}
+				}
+
+				registry.destroy(ent);
+				std::cout << "  - Main entity destroyed successfully" << std::endl;
 			}
 		}
         // Update GPU instances from Transform components 
