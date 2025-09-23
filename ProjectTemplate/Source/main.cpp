@@ -165,69 +165,6 @@ void GraphicsBehavior(entt::registry& registry)
 		DRAW::Camera{ initialCamera });
 }
 
-entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::string& modelName)
-{
-	// Create the entity
-	entt::entity gameEntity = registry.create();
-
-	// Add a MeshCollection component
-	auto& meshCollection = registry.emplace<GAME::MeshCollection>(gameEntity);
-
-	// Add a Transform component with identity matrix initially
-	auto& transform = registry.emplace<GAME::Transform>(gameEntity);
-	GW::MATH::GMatrix::IdentityF(transform.matrix);
-
-	// Get the ModelManager
-	auto& modelManager = registry.ctx().get<GAME::ModelManager>();
-
-	// Check if the model collection exists
-	std::cout << "Looking for model collection: " << modelName << std::endl;
-	if (modelManager.collections.find(modelName) != modelManager.collections.end() &&
-		!modelManager.collections[modelName].empty())
-	{
-		std::cout << "Found model collection: " << modelName << std::endl;
-
-		// Get the entities from the collection
-		auto& modelEntities = modelManager.collections[modelName];
-		std::cout << "Model collection " << modelName << " has " << modelEntities.size() << " entities" << std::endl;
-
-		// For each entity in the model collection
-		for (auto modelEntity : modelEntities)
-		{
-			// Create a new entity for the mesh
-			entt::entity meshEntity = registry.create();
-
-			// Copy the GeometryData and GPUInstance components
-			if (registry.all_of<DRAW::GeometryData>(modelEntity))
-			{
-				auto& geomData = registry.get<DRAW::GeometryData>(modelEntity);
-				registry.emplace<DRAW::GeometryData>(meshEntity, geomData);
-			}
-
-			if (registry.all_of<DRAW::GPUInstance>(modelEntity))
-			{
-				auto& gpuInstance = registry.get<DRAW::GPUInstance>(modelEntity);
-				registry.emplace<DRAW::GPUInstance>(meshEntity, gpuInstance);
-
-				// Set the transform from the first entity in the collection
-				if (modelEntities[0] == modelEntity)
-				{
-					transform.matrix = gpuInstance.transform;
-				}
-			}
-
-			// Add the mesh entity to the game entity's MeshCollection
-			meshCollection.meshEntities.push_back(meshEntity);
-		}
-	}
-	else
-	{
-		std::cout << "Model collection not found or empty: " << modelName << std::endl;
-	}
-
-	return gameEntity;
-}
-
 void GameplayBehavior(entt::registry& registry)
 {
 	std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
