@@ -10,18 +10,22 @@
 #include "UTIL/GameConfig.h"
 #include "GAME/Player.h"
 
+entt::entity enemyEntity;
+entt::entity playerEntity;
+
 // Local routines for specific application behavior
 void GraphicsBehavior(entt::registry& registry);
 void GameplayBehavior(entt::registry& registry);
 void MainLoopBehavior(entt::registry& registry);
 void CreatePlayer(entt::registry& registry);
+void CreateEnemy(entt::registry& registry);
 
 // Architecture is based on components/entities pushing updates to other components/entities (via "patch" function)
 int main()
 {
 
 	// All components, tags, and systems are stored in a single registry
-	entt::registry registry;	
+	entt::registry registry;
 
 	// initialize the ECS Component Logic
 	CCL::InitializeComponentLogic(registry);
@@ -37,22 +41,39 @@ int main()
 	GraphicsBehavior(registry); // create windows, surfaces, and renderers
 
 	GameplayBehavior(registry); // create entities and components for gameplay
-	
+
 	MainLoopBehavior(registry); // update windows and input
 
-	
+
 	// clear all entities and components from the registry
 	// invokes on_destroy() for all components that have it
 	// registry will still be intact while this is happening
-	registry.clear(); 
+	registry.clear();
 
 	return 0; // now destructors will be called for all components
 }
 
-void CreatePlayer(entt::registry& registry)
+void CreatePlayer(entt::registry& registry, std::shared_ptr<const GameConfig> config)
 {
-	// Create a player entity from the Turtle model
-	entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, "Turtle");
+	
+	// Get model names from config with error checking
+	std::string playerModelName = "Turtle"; // Default value
+
+
+	try {
+		playerModelName = config->at("Player").at("model").as<std::string>();
+	}
+	catch (const std::exception& e) {
+		std::cout << "Player model not found in config, using default: " << e.what() << std::endl;
+		// Keep the default value
+	}
+
+	std::cout << "Player model name: " << playerModelName << std::endl;
+
+	// Create player entity
+	playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
+	registry.emplace<GAME::Player>(playerEntity);
+	std::cout << "Player entity created" << std::endl;
 
 	// Check if the entity has a MeshCollection component
 	if (registry.all_of<GAME::MeshCollection>(playerEntity) &&
@@ -70,6 +91,47 @@ void CreatePlayer(entt::registry& registry)
 	else {
 		std::cout << "Failed to create player entity - model collection not found or empty" << std::endl;
 	}
+	// Add collider to player if it has a MeshCollection
+	if (registry.all_of<GAME::MeshCollection>(playerEntity)) {
+		auto& playerMeshCollection = registry.get<GAME::MeshCollection>(playerEntity);
+		// Create a default player collider (you may want to load this from config)
+		playerMeshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+		playerMeshCollection.collider.extent = { 1.0f, 1.0f, 1.0f };
+		playerMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+		registry.emplace<GAME::Collidable>(playerEntity);
+		std::cout << "Added collider to player entity" << std::endl;
+	}
+}
+
+void CreateEnemy(entt::registry& registry, std::shared_ptr<const GameConfig> config) {
+	
+	std::string enemyModelName = "Cactus";  // Default value
+
+	try {
+		enemyModelName = config->at("Enemy1").at("model").as<std::string>();
+	}
+	catch (const std::exception& e) {
+		std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
+		// Keep the default value
+	}
+
+	std::cout << "Enemy model name: " << enemyModelName << std::endl;
+
+	// Create enemy entity
+	enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
+	registry.emplace<GAME::Enemy>(enemyEntity);
+	std::cout << "Enemy entity created" << std::endl;
+
+	// Position the enemy somewhere visible
+	auto& transform = registry.get<GAME::Transform>(enemyEntity);
+	transform.matrix.row4.z = -10.0f;  // 10 units in front of player
+
+	// Generate a random diagonal direction vector (ensures both X and Z are non-zero)
+	GW::MATH::GVECTORF randomDirection = UTIL::GetRandomVelocityVector();
+
+	// Add velocity with the random direction
+	registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, 3.0f);
+
 }
 
 // This function will be called by the main loop to update the graphics
@@ -85,9 +147,10 @@ void GraphicsBehavior(entt::registry& registry)
 	auto ModelPath = (*config).at("Level1").at("modelPath").as<std::string>();
 
 	// TODO: Emplace CPULevel. Placing here to reduce occurrence of a json race condition crash
-	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{LevelFile, ModelPath});
+	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{ LevelFile, ModelPath });
 
-	CreatePlayer(registry);
+	CreatePlayer(registry, config);
+	CreateEnemy(registry, config);
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
@@ -95,11 +158,11 @@ void GraphicsBehavior(entt::registry& registry)
 	int startX = (*config).at("Window").at("xstart").as<int>();
 	int startY = (*config).at("Window").at("ystart").as<int>();
 	registry.emplace<APP::Window>(display,
-		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2"});
+		APP::Window{ startX, startY, windowWidth, windowHeight, GW::SYSTEM::GWindowStyle::WINDOWEDBORDERED, "Jacob Blackburn - Assignment 2" });
 
 
 	// Create the input
-	auto& input =  registry.ctx().emplace<UTIL::Input>();
+	auto& input = registry.ctx().emplace<UTIL::Input>();
 	auto& window = registry.get<GW::SYSTEM::GWindow>(display);
 	input.bufferedInput.Create(window);
 	input.immediateInput.Create(window);
@@ -113,11 +176,11 @@ void GraphicsBehavior(entt::registry& registry)
 	std::string vertShader = (*config).at("Shaders").at("vertex").as<std::string>();
 	std::string pixelShader = (*config).at("Shaders").at("pixel").as<std::string>();
 	registry.emplace<DRAW::VulkanRendererInitialization>(display,
-		DRAW::VulkanRendererInitialization{ 
+		DRAW::VulkanRendererInitialization{
 			vertShader, pixelShader,
 			{ {0.2f, 0.2f, 0.25f, 1} } , { 1.0f, 0u }, 75.f, 0.1f, 100.0f });
 	registry.emplace<DRAW::VulkanRenderer>(display);
-	
+
 	// TODO : Emplace GPULevel
 	registry.emplace<DRAW::GPULevel>(display);
 
@@ -228,72 +291,10 @@ void GameplayBehavior(entt::registry& registry)
 		std::cout << "GameManager entity created" << std::endl;
 	}
 
-	// Check if player and enemy entities exist
-	static bool entitiesCreated = false;
-	if (!entitiesCreated)
-	{
-		// Get the config file
-		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
-
-		// Get model names from config with error checking
-		std::string playerModelName = "Turtle"; // Default value
-		std::string enemyModelName = "Cactus";  // Default value
-
-		try {
-			playerModelName = config->at("Player").at("model").as<std::string>();
-		}
-		catch (const std::exception& e) {
-			std::cout << "Player model not found in config, using default: " << e.what() << std::endl;
-			// Keep the default value
-		}
-
-		try {
-			enemyModelName = config->at("Enemy1").at("model").as<std::string>();
-		}
-		catch (const std::exception& e) {
-			std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
-			// Keep the default value
-		}
-
-		std::cout << "Player model name: " << playerModelName << std::endl;
-		std::cout << "Enemy model name: " << enemyModelName << std::endl;
-
-		// Create player entity
-		entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
-		registry.emplace<GAME::Player>(playerEntity);
-		std::cout << "Player entity created" << std::endl;
-
-		// Create enemy entity
-		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
-		registry.emplace<GAME::Enemy>(enemyEntity);
-		std::cout << "Enemy entity created" << std::endl;
-
-		// Position the enemy somewhere visible
-		auto& transform = registry.get<GAME::Transform>(enemyEntity);
-		transform.matrix.row4.z = -10.0f;  // 10 units in front of player
-
-		// Generate a random direction vector
-		float randomAngle = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0f * 3.14159f; // Random angle in radians
-		GW::MATH::GVECTORF randomDirection = {
-			cosf(randomAngle), // X component
-			0.0f,              // Y component (keep on the horizontal plane)
-			sinf(randomAngle)  // Z component
-		};
-
-		// Normalize the direction vector
-		float length = sqrtf(randomDirection.x * randomDirection.x + randomDirection.z * randomDirection.z);
-		randomDirection.x /= length;
-		randomDirection.z /= length;
-
-		// Add velocity with the random direction
-		registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, 3.0f);
-		// Set initial visibility
-		auto& gameManager = registry.ctx().get<GAME::GameManager>();
-		GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
-		GAME::SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
-
-		entitiesCreated = true;
-	}
+	// Set initial visibility
+	auto& gameManager = registry.ctx().get<GAME::GameManager>();
+	GAME::SetEntityVisibility(registry, playerEntity, gameManager.playerVisible);
+	GAME::SetEntityVisibility(registry, enemyEntity, gameManager.enemyVisible);
 
 	// Update the GameManager
 	GAME::UpdateGameManager(registry, deltaTime);
@@ -302,7 +303,7 @@ void GameplayBehavior(entt::registry& registry)
 // This function will be called by the main loop to update the main loop
 // It will be responsible for updating any created windows and handling any input
 void MainLoopBehavior(entt::registry& registry)
-{	
+{
 	// main loop
 	int closedCount; // count of closed windows
 	auto winView = registry.view<APP::Window>(); // for updating all windows
@@ -315,7 +316,7 @@ void MainLoopBehavior(entt::registry& registry)
 			std::chrono::steady_clock::now() - start).count();
 		start = std::chrono::steady_clock::now();
 		// Cap delta time to min 30 fps. This will prevent too much time from simulating when dragging the window
-		if(elapsed > 1.0 / 30.0)
+		if (elapsed > 1.0 / 30.0)
 		{
 			elapsed = 1.0 / 30.0;
 		}

@@ -23,6 +23,17 @@ namespace GAME {
         }
 		
 		UpdateVelocitySystem(registry, deltaTime);
+
+		// Collision system
+		auto& Collisions = registry.view<Transform, MeshCollection, Collidable>();
+		for (auto a = Collisions.begin(); a != Collisions.end(); ++a)
+		{
+			auto b = a;
+			for (b++; b != Collisions.end(); b++)
+			{
+
+			}
+		}
         // Update GPU instances from Transform components 
         UpdateGPUInstances(registry); 
     }
