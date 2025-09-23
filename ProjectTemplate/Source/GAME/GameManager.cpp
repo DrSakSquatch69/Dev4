@@ -87,9 +87,13 @@ namespace GAME {
 				}
 			}
 			auto& ToDestroy = registry.view<toDestroy>();
+			if (ToDestroy.size() > 0) {
+				std::cout << "Destroying " << ToDestroy.size() << " entities this frame" << std::endl; 
+			}
 			for (auto ent : ToDestroy)
 			{
-				registry.destroy(ent);
+				std::cout << "Destroying entity: " << (int)ent << std::endl;  
+				registry.destroy(ent);  
 			}
 		}
         // Update GPU instances from Transform components 
