@@ -27,11 +27,62 @@ namespace GAME {
 		// Collision system
 		auto& Collisions = registry.view<Transform, MeshCollection, Collidable>();
 		for (auto a = Collisions.begin(); a != Collisions.end(); ++a)
-		{
+		{ 
+			using namespace GW::MATH;
+			
+			auto colA = registry.get<MeshCollection>(*a).collider;
+			auto& transA = registry.get<Transform>(*a).matrix;
+
+			//scale the extents 
+			GVECTORF scaleA;
+			GMatrix::GetScaleF(transA, scaleA);
+			colA.extent.x *= scaleA.x;
+			colA.extent.y *= scaleA.y;
+			colA.extent.z *= scaleA.z;
+
+			// Transform the center
+			GMatrix::VectorXMatrixF(transA, colA.center, colA.center);
+			
+			// Rotate 
+			GQUATERNIONF rotA;
+			GQuaternion::SetByMatrixF(transA, rotA);
+			GQuaternion::MultiplyQuaternionF(colA.rotation, rotA, colA.rotation);
+
 			auto b = a;
 			for (b++; b != Collisions.end(); b++)
 			{
+				auto colB = registry.get<MeshCollection>(*b).collider;
+				auto& transB = registry.get<Transform>(*b).matrix;
 
+				//scale the extents 
+				GVECTORF scaleB;
+				GMatrix::GetScaleF(transB, scaleB);
+				colB.extent.x *= scaleB.x;
+				colB.extent.y *= scaleB.y;
+				colB.extent.z *= scaleB.z;
+
+				// Transform the center
+				GMatrix::VectorXMatrixF(transB, colB.center, colB.center);
+
+				// Rotate 
+				GQUATERNIONF rotB;
+				GQuaternion::SetByMatrixF(transB, rotB);
+				GQuaternion::MultiplyQuaternionF(colB.rotation, rotB, colB.rotation);
+			
+				GCollision::GCollisionCheck result;
+				GCollision::TestOBBToOBBF(colA, colB, result);
+				if (GCollision::GCollisionCheck::COLLISION == result)
+				{
+					// These 2 are colliding!
+					if (registry.all_of<Bullet>(*a) && registry.all_of<Obstacle>(*b))
+					{
+						registry.destroy(*a);
+					}
+					if (registry.all_of<Bullet>(*b) && registry.all_of<Obstacle>(*a))
+					{
+						registry.destroy(*b);
+					}
+				}
 			}
 		}
         // Update GPU instances from Transform components 
