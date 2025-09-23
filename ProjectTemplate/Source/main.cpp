@@ -103,8 +103,8 @@ void GraphicsBehavior(entt::registry& registry)
 
 	// TODO: Emplace CPULevel. Placing here to reduce occurrence of a json race condition crash
 	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{ LevelFile, ModelPath });
-
 	
+
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
