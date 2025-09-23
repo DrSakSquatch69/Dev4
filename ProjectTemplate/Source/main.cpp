@@ -267,6 +267,17 @@ void GameplayBehavior(entt::registry& registry)
 		entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 		registry.emplace<GAME::Enemy>(enemyEntity);
 		std::cout << "Enemy entity created" << std::endl;
+		
+		entt::entity enemy = CreateGameEntityFromModel(registry, "Enemy");
+		registry.emplace<GAME::Enemy>(enemy);
+
+		// Position the enemy somewhere visible
+		auto& transform = registry.get<GAME::Transform>(enemy);
+		transform.matrix.row4.z = -10.0f;  // 10 units in front of player
+
+		// Add velocity (moving right for now)
+		GW::MATH::GVECTORF right = { 1.0f, 0.0f, 0.0f };
+		registry.emplace<GAME::Velocity>(enemy, right, 3.0f);
 
 		// Set initial visibility
 		auto& gameManager = registry.ctx().get<GAME::GameManager>();

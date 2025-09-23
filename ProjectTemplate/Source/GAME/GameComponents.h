@@ -22,5 +22,11 @@ namespace GAME
         float cooldown;    // Current cooldown time remaining
         float maxCooldown; // Maximum cooldown time
     };
+
+    struct Velocity {
+        GW::MATH::GVECTORF direction;  // Which way to move (like a compass direction)
+        float speed;                   // How fast to move (like 10 units per second)
+    };
+
 }// namespace GAME
 #endif // !GAME_COMPONENTS_H_

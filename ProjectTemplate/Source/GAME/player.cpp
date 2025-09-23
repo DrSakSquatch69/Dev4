@@ -76,6 +76,11 @@ namespace GAME
 				auto& bulletTransform = registry.get<Transform>(bulletEntity);
 				bulletTransform.matrix = transform.matrix; // Copy the player's transform
 
+				// Add velocity to make the bullet move forward
+				GW::MATH::GVECTORF forward = { 0.0f, 0.0f, 1.0f };  // Forward in game coordinates
+				float bulletSpeed = 10.0f;  // 10 units per second
+				registry.emplace<Velocity>(bulletEntity, forward, bulletSpeed);
+
 				// Add the Firing component to the player with a cooldown
 				registry.emplace<Firing>(entity, 0.5f, 0.5f); // 0.5 seconds cooldown
 
