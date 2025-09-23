@@ -49,6 +49,8 @@ namespace GAME
     void HandleVisibilityToggleInput(entt::registry& registry);
 
     void UpdateVelocitySystem(entt::registry& registry, float deltaTime);
+
+    
 }
 
 #endif // GAME_MANAGER_H

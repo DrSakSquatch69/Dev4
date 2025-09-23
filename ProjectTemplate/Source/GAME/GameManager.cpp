@@ -1,6 +1,7 @@
 #include "GameManager.h"
 #include "../CCL.h"
 #include "../UTIL/Utilities.h"
+using namespace GW::MATH;
 
 namespace GAME {
 
@@ -25,64 +26,70 @@ namespace GAME {
 		UpdateVelocitySystem(registry, deltaTime);
 
 		// Collision system
-		auto& Collisions = registry.view<Transform, MeshCollection, Collidable>();
-		for (auto a = Collisions.begin(); a != Collisions.end(); ++a)
-		{ 
-			using namespace GW::MATH;
-			
+		// Check for collisions between entities
+		auto& collisions = registry.view<Transform, MeshCollection, Collidable>();
+		for (auto a = collisions.begin(); a != collisions.end(); a++)
+		{
 			auto colA = registry.get<MeshCollection>(*a).collider;
 			auto& transA = registry.get<Transform>(*a).matrix;
 
-			//scale the extents 
-			GVECTORF scaleA;
-			GMatrix::GetScaleF(transA, scaleA);
-			colA.extent.x *= scaleA.x;
-			colA.extent.y *= scaleA.y;
-			colA.extent.z *= scaleA.z;
+			// Scale the extents
+			GVECTORF vecA;
+			GMatrix::GetScaleF(transA, vecA);
+			colA.extent.x = vecA.x;
+			colA.extent.y = vecA.y;
+			colA.extent.z = vecA.z;
 
-			// Transform the center
+			//Transform the center
 			GMatrix::VectorXMatrixF(transA, colA.center, colA.center);
-			
-			// Rotate 
-			GQUATERNIONF rotA;
-			GQuaternion::SetByMatrixF(transA, rotA);
-			GQuaternion::MultiplyQuaternionF(colA.rotation, rotA, colA.rotation);
+
+			//Rotate
+			GQUATERNIONF qA;
+			GQuaternion::SetByMatrixF(transA, qA);
+			GQuaternion::MultiplyQuaternionF(colA.rotation, qA, colA.rotation);
 
 			auto b = a;
-			for (b++; b != Collisions.end(); b++)
+			for (b++; b != collisions.end(); b++)
 			{
 				auto colB = registry.get<MeshCollection>(*b).collider;
 				auto& transB = registry.get<Transform>(*b).matrix;
 
-				//scale the extents 
-				GVECTORF scaleB;
-				GMatrix::GetScaleF(transB, scaleB);
-				colB.extent.x *= scaleB.x;
-				colB.extent.y *= scaleB.y;
-				colB.extent.z *= scaleB.z;
+				// Scale the extents
+				GVECTORF vecB;
+				GMatrix::GetScaleF(transB, vecB);
+				colB.extent.x = vecB.x;
+				colB.extent.y = vecB.y;
+				colB.extent.z = vecB.z;
 
-				// Transform the center
+				//Transform the center
 				GMatrix::VectorXMatrixF(transB, colB.center, colB.center);
 
-				// Rotate 
-				GQUATERNIONF rotB;
-				GQuaternion::SetByMatrixF(transB, rotB);
-				GQuaternion::MultiplyQuaternionF(colB.rotation, rotB, colB.rotation);
-			
+				//Rotate
+				GQUATERNIONF qB;
+				GQuaternion::SetByMatrixF(transB, qB);
+				GQuaternion::MultiplyQuaternionF(colB.rotation, qB, colB.rotation);
+
 				GCollision::GCollisionCheck result;
 				GCollision::TestOBBToOBBF(colA, colB, result);
 				if (GCollision::GCollisionCheck::COLLISION == result)
 				{
 					// These 2 are colliding!
+
+					//bullet to wall
 					if (registry.all_of<Bullet>(*a) && registry.all_of<Obstacle>(*b))
 					{
-						registry.destroy(*a);
+						registry.emplace_or_replace<toDestroy>(*a);
 					}
 					if (registry.all_of<Bullet>(*b) && registry.all_of<Obstacle>(*a))
 					{
-						registry.destroy(*b);
+						registry.emplace_or_replace<toDestroy>(*b);
 					}
 				}
+			}
+			auto& ToDestroy = registry.view<toDestroy>();
+			for (auto ent : ToDestroy)
+			{
+				registry.destroy(ent);
 			}
 		}
         // Update GPU instances from Transform components 
@@ -328,6 +335,106 @@ namespace GAME {
 		}
 	}
 
+	/*void CreateWalls(entt::registry& registry) {
+		std::cout << "??? Creating walls explicitly..." << std::endl;
+
+		// Wall specifications
+		const float WALL_THICKNESS = 2.0f;      // Thickness for better collision
+		const float WALL_HEIGHT = 3.0f;         // Height of walls
+		const float WALL_LENGTH = 50.0f;        // Length of walls
+
+		// Create 4 walls forming a rectangular arena
+
+		// 1. LEFT WALL (-X axis)
+		{
+			entt::entity leftWall = registry.create();
+
+			// Add required components like player/enemy
+			registry.emplace<Obstacle>(leftWall);           // Tag as obstacle
+			registry.emplace<Collidable>(leftWall);         // Enable collision
+
+			// Set position like player/enemy
+			auto& transform = registry.emplace<Transform>(leftWall);
+			GW::MATH::GMATRIXF wallMatrix;
+			GW::MATH::GMatrix::IdentityF(wallMatrix);
+			GW::MATH::GMatrix::TranslateF(wallMatrix, { -25.0f, 1.5f, 0.0f }, wallMatrix);
+			transform.matrix = wallMatrix;
+
+			// Set collider like player/enemy
+			auto& meshCollection = registry.emplace<MeshCollection>(leftWall);
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { WALL_THICKNESS / 2, WALL_HEIGHT / 2, WALL_LENGTH / 2 };
+			meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+			std::cout << "  Left wall created at (-25, 1.5, 0)" << std::endl;
+		}
+
+		// 2. RIGHT WALL (+X axis)
+		{
+			entt::entity rightWall = registry.create();
+
+			registry.emplace<Obstacle>(rightWall);
+			registry.emplace<Collidable>(rightWall);
+
+			auto& transform = registry.emplace<Transform>(rightWall);
+			GW::MATH::GMATRIXF wallMatrix;
+			GW::MATH::GMatrix::IdentityF(wallMatrix);
+			GW::MATH::GMatrix::TranslateF(wallMatrix, { 25.0f, 1.5f, 0.0f }, wallMatrix);
+			transform.matrix = wallMatrix;
+
+			auto& meshCollection = registry.emplace<MeshCollection>(rightWall);
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { WALL_THICKNESS / 2, WALL_HEIGHT / 2, WALL_LENGTH / 2 };
+			meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+			std::cout << "  Right wall created at (25, 1.5, 0)" << std::endl;
+		}
+
+		// 3. BACK WALL (+Z axis)
+		{
+			entt::entity backWall = registry.create();
+
+			registry.emplace<Obstacle>(backWall);
+			registry.emplace<Collidable>(backWall);
+
+			auto& transform = registry.emplace<Transform>(backWall);
+			GW::MATH::GMATRIXF wallMatrix;
+			GW::MATH::GMatrix::IdentityF(wallMatrix);
+			GW::MATH::GMatrix::TranslateF(wallMatrix, { 0.0f, 1.5f, 25.0f }, wallMatrix);
+			transform.matrix = wallMatrix;
+
+			auto& meshCollection = registry.emplace<MeshCollection>(backWall);
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { WALL_LENGTH / 2, WALL_HEIGHT / 2, WALL_THICKNESS / 2 };
+			meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+			std::cout << "  Back wall created at (0, 1.5, 25)" << std::endl;
+		}
+
+		// 4. FRONT WALL (-Z axis)
+		{
+			entt::entity frontWall = registry.create();
+
+			registry.emplace<Obstacle>(frontWall);
+			registry.emplace<Collidable>(frontWall);
+
+			auto& transform = registry.emplace<Transform>(frontWall);
+			GW::MATH::GMATRIXF wallMatrix;
+			GW::MATH::GMatrix::IdentityF(wallMatrix);
+			GW::MATH::GMatrix::TranslateF(wallMatrix, { 0.0f, 1.5f, -25.0f }, wallMatrix);
+			transform.matrix = wallMatrix;
+
+			auto& meshCollection = registry.emplace<MeshCollection>(frontWall);
+			meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+			meshCollection.collider.extent = { WALL_LENGTH / 2, WALL_HEIGHT / 2, WALL_THICKNESS / 2 };
+			meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+			std::cout << "  Front wall created at (0, 1.5, -25)" << std::endl;
+		}
+
+		std::cout << "? All 4 walls created successfully!" << std::endl;
+	}*/
+	
 	// on_update method for the GameManager component
 	void on_update(entt::registry& registry, entt::entity entity) {
 		// Get the delta time from the registry context
