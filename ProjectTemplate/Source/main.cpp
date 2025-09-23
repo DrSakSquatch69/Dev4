@@ -10,8 +10,6 @@
 #include "UTIL/GameConfig.h"
 #include "GAME/Player.h"
 
-entt::entity enemyEntity;
-entt::entity playerEntity;
 
 // Local routines for specific application behavior
 void GraphicsBehavior(entt::registry& registry);
@@ -71,7 +69,7 @@ void CreatePlayer(entt::registry& registry, std::shared_ptr<const GameConfig> co
 	std::cout << "Player model name: " << playerModelName << std::endl;
 
 	// Create player entity
-	playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
+	entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
 	registry.emplace<GAME::Player>(playerEntity);
 	std::cout << "Player entity created" << std::endl;
 
@@ -118,7 +116,7 @@ void CreateEnemy(entt::registry& registry, std::shared_ptr<const GameConfig> con
 	std::cout << "Enemy model name: " << enemyModelName << std::endl;
 
 	// Create enemy entity
-	enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
+	entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
 	registry.emplace<GAME::Enemy>(enemyEntity);
 	std::cout << "Enemy entity created" << std::endl;
 
@@ -276,6 +274,8 @@ entt::entity CreateGameEntityFromModel(entt::registry& registry, const std::stri
 
 void GameplayBehavior(entt::registry& registry)
 {
+	std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
+
 	// Calculate delta time
 	static auto lastTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
@@ -290,6 +290,39 @@ void GameplayBehavior(entt::registry& registry)
 		registry.emplace<GAME::GameManager>(gameManagerEntity);
 		std::cout << "GameManager entity created" << std::endl;
 	}
+	// Get model names from config with error checking
+	std::string playerModelName = "Turtle"; // Default value
+	std::string enemyModelName = "Cactus";  // Default value
+
+	try {
+		enemyModelName = config->at("Enemy1").at("model").as<std::string>();
+	}
+	catch (const std::exception& e) {
+		std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
+		// Keep the default value
+	}
+
+
+	try {
+		playerModelName = config->at("Player").at("model").as<std::string>();
+	}
+	catch (const std::exception& e) {
+		std::cout << "Player model not found in config, using default: " << e.what() << std::endl;
+		// Keep the default value
+	}
+
+	std::cout << "Player model name: " << playerModelName << std::endl;
+	std::cout << "Enemy model name: " << enemyModelName << std::endl;
+
+	// Create enemy entity
+	entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
+	registry.emplace<GAME::Enemy>(enemyEntity);
+	std::cout << "Enemy entity created" << std::endl;
+
+	// Create player entity
+	entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
+	registry.emplace<GAME::Player>(playerEntity);
+	std::cout << "Player entity created" << std::endl;
 
 	// Set initial visibility
 	auto& gameManager = registry.ctx().get<GAME::GameManager>();
