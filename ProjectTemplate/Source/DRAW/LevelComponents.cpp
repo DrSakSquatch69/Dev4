@@ -3,8 +3,8 @@
 #include "../GAME/ModelManager.h"
 namespace DRAW
 {
-// Call this function after Level_Data is loaded and buffers are ready
-void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
+    // Call this function after Level_Data is loaded and buffers are ready
+    void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
     {
         // Get the CPULevel and Level_Data
         if (!registry.all_of<CPULevel>(displayEntity)) return;
@@ -33,8 +33,8 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
                 std::string modelName = model.filename;
                 std::string collectionName = modelName;
                 size_t lastSlash = collectionName.find_last_of("/\\");
-                    if (lastSlash != std::string::npos)
-                        collectionName = collectionName.substr(lastSlash + 1);
+                if (lastSlash != std::string::npos)
+                    collectionName = collectionName.substr(lastSlash + 1);
 
                 size_t lastDot = collectionName.find_last_of(".");
                 if (lastDot != std::string::npos)
@@ -42,7 +42,7 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
 
                 std::cout << "Adding entity to collection: " << collectionName << std::endl;
                 GAME::AddEntityToCollection(registry, meshEntity, collectionName);
-                
+
                 // Fill out GeometryData
                 GeometryData geom;
                 geom.indexStart = model.indexStart + mesh.drawInfo.indexOffset;
@@ -65,6 +65,7 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
                 // Attach components
                 registry.emplace<GeometryData>(meshEntity, geom);
                 registry.emplace<GPUInstance>(meshEntity, instance);
+
                 // Add collider to MeshCollection if the model has one
                 if (model.isCollidable && model.colliderIndex < levelData.levelColliders.size()) {
                     // Get the existing MeshCollection for this entity or create one
@@ -81,6 +82,7 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
 
                     std::cout << "Added collider to entity: " << collectionName << std::endl;
                 }
+
                 // Create obstacle entity for collidable walls/objects
                 if (model.isCollidable) {
                     // Create a separate entity to represent the obstacle
@@ -102,6 +104,7 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
 
                     std::cout << "Created obstacle entity for: " << collectionName << std::endl;
                 }
+
                 // Add DoNotRender tag to dynamic meshes
                 if (model.isDynamic)
                 {
@@ -114,7 +117,7 @@ void BuildLevelEntities(entt::registry& registry, entt::entity displayEntity)
                 }
             }
         }
-}
+    }
 
 void Construct_CPULevel(entt::registry& registry, entt::entity entity)
 {
