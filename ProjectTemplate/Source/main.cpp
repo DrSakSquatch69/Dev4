@@ -51,28 +51,8 @@ int main()
 	return 0; // now destructors will be called for all components
 }
 
-void CreatePlayer(entt::registry& registry, std::shared_ptr<const GameConfig> config)
+void CreatePlayer(entt::registry& registry, entt::entity playerEntity)
 {
-	
-	// Get model names from config with error checking
-	std::string playerModelName = "Turtle"; // Default value
-
-
-	try {
-		playerModelName = config->at("Player").at("model").as<std::string>();
-	}
-	catch (const std::exception& e) {
-		std::cout << "Player model not found in config, using default: " << e.what() << std::endl;
-		// Keep the default value
-	}
-
-	std::cout << "Player model name: " << playerModelName << std::endl;
-
-	// Create player entity
-	entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
-	registry.emplace<GAME::Player>(playerEntity);
-	std::cout << "Player entity created" << std::endl;
-
 	// Check if the entity has a MeshCollection component
 	if (registry.all_of<GAME::MeshCollection>(playerEntity) &&
 		!registry.get<GAME::MeshCollection>(playerEntity).meshEntities.empty()) {
@@ -101,25 +81,9 @@ void CreatePlayer(entt::registry& registry, std::shared_ptr<const GameConfig> co
 	}
 }
 
-void CreateEnemy(entt::registry& registry, std::shared_ptr<const GameConfig> config) {
+void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
 	
-	std::string enemyModelName = "Cactus";  // Default value
-
-	try {
-		enemyModelName = config->at("Enemy1").at("model").as<std::string>();
-	}
-	catch (const std::exception& e) {
-		std::cout << "Enemy model not found in config, using default: " << e.what() << std::endl;
-		// Keep the default value
-	}
-
-	std::cout << "Enemy model name: " << enemyModelName << std::endl;
-
-	// Create enemy entity
-	entt::entity enemyEntity = GAME::CreateGameEntityFromModel(registry, enemyModelName);
-	registry.emplace<GAME::Enemy>(enemyEntity);
-	std::cout << "Enemy entity created" << std::endl;
-
+	
 	// Position the enemy somewhere visible
 	auto& transform = registry.get<GAME::Transform>(enemyEntity);
 	transform.matrix.row4.z = -10.0f;  // 10 units in front of player
@@ -147,8 +111,7 @@ void GraphicsBehavior(entt::registry& registry)
 	// TODO: Emplace CPULevel. Placing here to reduce occurrence of a json race condition crash
 	registry.emplace<DRAW::CPULevel>(display, DRAW::CPULevel{ LevelFile, ModelPath });
 
-	CreatePlayer(registry, config);
-	CreateEnemy(registry, config);
+	
 
 	// Emplace and initialize Window component
 	int windowWidth = (*config).at("Window").at("width").as<int>();
@@ -323,6 +286,9 @@ void GameplayBehavior(entt::registry& registry)
 	entt::entity playerEntity = GAME::CreateGameEntityFromModel(registry, playerModelName);
 	registry.emplace<GAME::Player>(playerEntity);
 	std::cout << "Player entity created" << std::endl;
+	
+	CreatePlayer(registry, playerEntity);
+	CreateEnemy(registry, enemyEntity);
 
 	// Set initial visibility
 	auto& gameManager = registry.ctx().get<GAME::GameManager>();
