@@ -1,4 +1,5 @@
 #include "Player.h"
+using namespace GW::MATH;
 
 namespace GAME
 {
@@ -72,11 +73,21 @@ namespace GAME
 				if (registry.all_of<GAME::MeshCollection>(bulletEntity)) {
 					auto& bulletMeshCollection = registry.get<GAME::MeshCollection>(bulletEntity);
 					// Create a small bullet collider
-					bulletMeshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
 					bulletMeshCollection.collider.extent = { 0.2f, 0.2f, 0.2f };
 					bulletMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+					// Set the collider center to match the bullet's actual position
+					auto& bulletTransform = registry.get<Transform>(bulletEntity);
+					GVECTORF bulletPos;
+					bulletPos.x = bulletTransform.matrix.data[12];
+					bulletPos.y = bulletTransform.matrix.data[13];
+					bulletPos.z = bulletTransform.matrix.data[14];
+					bulletPos.w = 1.0f;
+					bulletMeshCollection.collider.center = bulletPos;
+
 					registry.emplace<GAME::Collidable>(bulletEntity);
-					std::cout << "Added collider to bullet entity" << std::endl;
+					std::cout << "Added collider to bullet entity at position: ("
+						<< bulletPos.x << ", " << bulletPos.y << ", " << bulletPos.z << ")" << std::endl;
 				}
 				// Add the Bullet tag
 				registry.emplace<Bullet>(bulletEntity);
