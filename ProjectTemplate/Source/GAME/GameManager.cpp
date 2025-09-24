@@ -367,26 +367,23 @@ namespace GAME {
 			auto& transform = registry.get<Transform>(entity);
 			auto& velocity = registry.get<Velocity>(entity);
 
-			// Calculate movement vector
-			GVECTORF movement = velocity.direction;
-			GVector::ScaleF(movement, velocity.speed * deltaTime, movement);
+			// Calculate movement for this frame
+			GW::MATH::GVECTORF movement = {
+				velocity.direction.x * velocity.speed * deltaTime,
+				velocity.direction.y * velocity.speed * deltaTime,
+				velocity.direction.z * velocity.speed * deltaTime
+			};
 
-			// Apply movement to transform
-			GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
-
-			// UPDATE MESHCOLLECTION COLLIDER CENTER HERE ???
-			if (registry.all_of<MeshCollection>(entity)) {
+			// Apply the movement
+			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
+		
+			if (registry.all_of<MeshCollection>(entity) && registry.all_of<Enemy>(entity)) {
 				auto& meshCollection = registry.get<MeshCollection>(entity);
 				meshCollection.collider.center = transform.matrix.row4;
-
-				// Debug output for enemy movement
-				if (registry.all_of<Enemy>(entity)) {
-					std::cout << "Enemy " << (int)entity << " moved to: ("
-						<< transform.matrix.row4.x << ", " << transform.matrix.row4.z << ")" << std::endl;
-				}
 			}
 		}
 	}
+
 	
 	// on_update method for the GameManager component
 	void on_update(entt::registry& registry, entt::entity entity) {
