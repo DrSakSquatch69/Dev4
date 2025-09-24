@@ -84,6 +84,9 @@ void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
 		registry.emplace<GAME::MeshCollection>(enemyEntity);
 	}
 
+	registry.emplace_or_replace<GAME::Collidable>(enemyEntity);
+	std::cout << "Added collider to enemy entity at position: (";
+
 	// Get the transform for positioning
 	auto& transform = registry.get<GAME::Transform>(enemyEntity);
 
@@ -111,10 +114,6 @@ void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
 	enemyPos.z = transform.matrix.data[14];
 	enemyPos.w = 1.0f;
 	enemyMeshCollection.collider.center = enemyPos;
-
-	registry.emplace<GAME::Collidable>(enemyEntity);
-	std::cout << "Added collider to enemy entity at position: ("
-		<< enemyPos.x << ", " << enemyPos.y << ", " << enemyPos.z << ")" << std::endl;
 }
 
 // This function will be called by the main loop to update the graphics

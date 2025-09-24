@@ -13,6 +13,9 @@ namespace GAME {
 
 	void BounceEnemy(GVECTORF enemyLocation, GVECTORF& enemyVelocity, GOBBF& obstacleBox)
 	{
+		std::cout << "BounceEnemy called for entity at position: (" << enemyLocation.x << ", " << enemyLocation.z << ")" << std::endl;
+		std::cout << "Enemy velocity: (" << enemyVelocity.x << ", " << enemyVelocity.z << ")" << std::endl;
+
 		//Find Normal
 		GVECTORF normal;
 		GCollision::ClosestPointToOBBF(obstacleBox, enemyLocation, normal);
@@ -46,6 +49,15 @@ namespace GAME {
 		// Collision system
 		// Check for collisions between entities
 		auto& collisions = registry.view<Transform, MeshCollection, Collidable>();
+		std::cout << "=== Collision Detection Start ===" << std::endl;
+		std::cout << "Total entities in collision view: " << collisions.size_hint() << std::endl;
+		for (auto entity : collisions) {
+			std::cout << "Entity " << (int)entity << ": ";
+			if (registry.all_of<Enemy>(entity)) std::cout << "Enemy ";
+			if (registry.all_of<Obstacle>(entity)) std::cout << "Obstacle ";
+			if (registry.all_of<Bullet>(entity)) std::cout << "Bullet ";
+			std::cout << std::endl;
+		}
 		for (auto a = collisions.begin(); a != collisions.end(); a++)
 		{
 			auto colA = registry.get<MeshCollection>(*a).collider;
@@ -91,8 +103,13 @@ namespace GAME {
 				GCollision::TestOBBToOBBF(colA, colB, result);
 				if (GCollision::GCollisionCheck::COLLISION == result)
 				{
+					if (registry.all_of<Obstacle>(*a) && registry.all_of<Obstacle>(*b)) {
+						continue; // Skip to next iteration
+					}
 					// These 2 are colliding!
-
+					std::cout << "COLLISION DETECTED between entities " << (int)*a << " and " << (int)*b << std::endl;
+					std::cout << "  Entity A: Enemy=" << registry.all_of<Enemy>(*a) << ", Obstacle=" << registry.all_of<Obstacle>(*a) << std::endl;
+					std::cout << "  Entity B: Enemy=" << registry.all_of<Enemy>(*b) << ", Obstacle=" << registry.all_of<Obstacle>(*b) << std::endl;
 					//bullet to wall
 					if (registry.all_of<Bullet>(*a) && registry.all_of<Obstacle>(*b))
 					{
