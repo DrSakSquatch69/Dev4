@@ -49,14 +49,35 @@ namespace GAME {
 		// Collision system
 		// Check for collisions between entities
 		auto& collisions = registry.view<Transform, MeshCollection, Collidable>();
-		std::cout << "=== Collision Detection Start ===" << std::endl;
+		std::cout << "\=== DETAILED COLLISION DEBUG ===" << std::endl;
 		std::cout << "Total entities in collision view: " << collisions.size_hint() << std::endl;
+
+		// Print detailed entity information
 		for (auto entity : collisions) {
 			std::cout << "Entity " << (int)entity << ": ";
-			if (registry.all_of<Enemy>(entity)) std::cout << "Enemy ";
-			if (registry.all_of<Obstacle>(entity)) std::cout << "Obstacle ";
-			if (registry.all_of<Bullet>(entity)) std::cout << "Bullet ";
+			if (registry.all_of<GAME::Enemy>(entity)) std::cout << "Enemy ";
+			if (registry.all_of<GAME::Obstacle>(entity)) std::cout << "Obstacle ";
+			if (registry.all_of<GAME::Bullet>(entity)) std::cout << "Bullet ";
+			if (registry.all_of<GAME::Player>(entity)) std::cout << "Player ";
+
+			auto& transform = registry.get<GAME::Transform>(entity);
+			auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
+
 			std::cout << std::endl;
+			std::cout << "  Position: ("
+				<< transform.matrix.row4.x << ", "
+				<< transform.matrix.row4.y << ", "
+				<< transform.matrix.row4.z << ")" << std::endl;
+
+			std::cout << "  Collider: Center=("
+				<< meshCollection.collider.center.x << ", "
+				<< meshCollection.collider.center.y << ", "
+				<< meshCollection.collider.center.z << "), ";
+
+			std::cout << "Extent=("
+				<< meshCollection.collider.extent.x << ", "
+				<< meshCollection.collider.extent.y << ", "
+				<< meshCollection.collider.extent.z << ")" << std::endl;
 		}
 		for (auto a = collisions.begin(); a != collisions.end(); a++)
 		{
