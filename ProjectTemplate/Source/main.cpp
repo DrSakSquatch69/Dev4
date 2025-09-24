@@ -76,10 +76,18 @@ void CreatePlayer(entt::registry& registry, entt::entity playerEntity)
 }
 
 void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
-	
-	
-	// Position the enemy somewhere visible
+	// Always add required components (like CreatePlayer does)
+	if (!registry.all_of<GAME::Transform>(enemyEntity)) {
+		registry.emplace<GAME::Transform>(enemyEntity);
+	}
+	if (!registry.all_of<GAME::MeshCollection>(enemyEntity)) {
+		registry.emplace<GAME::MeshCollection>(enemyEntity);
+	}
+
+	// Get the transform for positioning
 	auto& transform = registry.get<GAME::Transform>(enemyEntity);
+
+	// Position the enemy somewhere visible
 	transform.matrix.row4.z = -10.0f;  // 10 units in front of player
 
 	// Generate a random diagonal direction vector (ensures both X and Z are non-zero)
@@ -87,22 +95,26 @@ void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
 
 	// Add velocity with the random direction
 	registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, 3.0f);
-	if (registry.all_of<GAME::MeshCollection>(enemyEntity)) {
-		auto& enemyMeshCollection = registry.get<GAME::MeshCollection>(enemyEntity);
 
-		// Create enemy collider based on model extents
-		enemyMeshCollection.collider.extent = { 1.0f, 1.0f, 1.0f };
-		enemyMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+	// Add collider to enemy - EXACTLY like bullet creation
+	auto& enemyMeshCollection = registry.get<GAME::MeshCollection>(enemyEntity);
 
-		// Set the collider center to match the enemy's position
-		GVECTORF enemyPos = transform.matrix.row4;
-		enemyMeshCollection.collider.center = enemyPos;
+	// Create enemy collider based on model extents
+	enemyMeshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+	enemyMeshCollection.collider.extent = { 1.0f, 1.0f, 1.0f };
+	enemyMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-		registry.emplace<GAME::Collidable>(enemyEntity);
-		std::cout << "Added collider to enemy entity at position: ("
-			<< enemyPos.x << ", " << enemyPos.y << ", " << enemyPos.z << ")" << std::endl;
-	}
+	// Set the collider center to match the enemy's actual position (after positioning)
+	GVECTORF enemyPos;
+	enemyPos.x = transform.matrix.data[12];
+	enemyPos.y = transform.matrix.data[13];
+	enemyPos.z = transform.matrix.data[14];
+	enemyPos.w = 1.0f;
+	enemyMeshCollection.collider.center = enemyPos;
 
+	registry.emplace<GAME::Collidable>(enemyEntity);
+	std::cout << "Added collider to enemy entity at position: ("
+		<< enemyPos.x << ", " << enemyPos.y << ", " << enemyPos.z << ")" << std::endl;
 }
 
 // This function will be called by the main loop to update the graphics

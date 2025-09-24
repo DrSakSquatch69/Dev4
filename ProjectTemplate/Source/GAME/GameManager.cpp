@@ -377,7 +377,8 @@ namespace GAME {
 			// Apply the movement
 			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
 		
-			if (registry.all_of<MeshCollection>(entity) && registry.all_of<Enemy>(entity)) {
+			if (registry.all_of<MeshCollection>(entity) && registry.all_of<Enemy>(entity)) 
+			{
 				auto& meshCollection = registry.get<MeshCollection>(entity);
 				meshCollection.collider.center = transform.matrix.row4;
 			}
