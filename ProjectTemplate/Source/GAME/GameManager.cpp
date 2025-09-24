@@ -11,6 +11,24 @@ namespace GAME {
 		std::cout << "GameManager initialized" << std::endl;
 	}
 
+	void BounceEnemy(GVECTORF enemyLocation, GVECTORF& enemyVelocity, GOBBF& obstacleBox)
+	{
+		//Find Normal
+		GVECTORF normal;
+		GCollision::ClosestPointToOBBF(obstacleBox, enemyLocation, normal);
+		GVector::SubtractVectorF(enemyLocation, normal, normal);
+		normal.y = 0.0f; normal.w = 0.0f;
+		GVector::NormalizeF(normal, normal);
+
+		//w = v - (2 * (v * n) * n)
+		float dot;
+		GVector::DotF(enemyVelocity, normal, dot);
+		dot *= 2.0f;
+		GVector::ScaleF(normal, dot, normal);
+		GVector::SubtractVectorF(enemyVelocity, normal, enemyVelocity);
+
+	}
+
     void UpdateGameManager(entt::registry& registry, float deltaTime) {
         // Get the GameManager from the registry context
         auto& gameManager = registry.ctx().get<GameManager>();
@@ -83,6 +101,17 @@ namespace GAME {
 					if (registry.all_of<Bullet>(*b) && registry.all_of<Obstacle>(*a))
 					{
 						registry.emplace_or_replace<toDestroy>(*b);
+					}
+					// Enemy to wall - bounce response
+					if (registry.all_of<Enemy>(*a) && registry.all_of<Obstacle>(*b))
+					{
+						auto& vel = registry.get<Velocity>(*a).direction;
+						BounceEnemy(transA.row4, vel, colB);
+					}
+					if (registry.all_of<Enemy>(*b) && registry.all_of<Obstacle>(*a))
+					{
+						auto& vel = registry.get<Velocity>(*b).direction;
+						BounceEnemy(transB.row4, vel, colA);
 					}
 				}
 			}
