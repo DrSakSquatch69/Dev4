@@ -386,7 +386,7 @@ namespace GAME {
 				}
 			}
 		}
-
+	}
 	
 	// on_update method for the GameManager component
 	void on_update(entt::registry& registry, entt::entity entity) {
