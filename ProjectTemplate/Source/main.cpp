@@ -9,6 +9,7 @@
 #include "GAME/GameManager.h"
 #include "UTIL/GameConfig.h"
 #include "GAME/Player.h"
+using namespace GW::MATH;
 
 
 // Local routines for specific application behavior
@@ -86,6 +87,21 @@ void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
 
 	// Add velocity with the random direction
 	registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, 3.0f);
+	if (registry.all_of<GAME::MeshCollection>(enemyEntity)) {
+		auto& enemyMeshCollection = registry.get<GAME::MeshCollection>(enemyEntity);
+
+		// Create enemy collider based on model extents
+		enemyMeshCollection.collider.extent = { 1.0f, 1.0f, 1.0f };
+		enemyMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+		// Set the collider center to match the enemy's position
+		GVECTORF enemyPos = transform.matrix.row4;
+		enemyMeshCollection.collider.center = enemyPos;
+
+		registry.emplace<GAME::Collidable>(enemyEntity);
+		std::cout << "Added collider to enemy entity at position: ("
+			<< enemyPos.x << ", " << enemyPos.y << ", " << enemyPos.z << ")" << std::endl;
+	}
 
 }
 
