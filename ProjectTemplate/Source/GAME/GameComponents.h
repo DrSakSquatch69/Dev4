@@ -28,7 +28,7 @@ namespace GAME
     };
 
     struct Invulnerability {
-        int cooldown;    // Current cooldown time remaining
+        float cooldown;    // Current cooldown time remaining
         };
 
     struct Velocity {

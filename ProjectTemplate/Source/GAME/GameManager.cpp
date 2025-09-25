@@ -143,9 +143,9 @@ namespace GAME {
 							auto& health = registry.get<Health>(*a);
 							health.current--;
 							std::cout << "Player hit! Health reduced to: " << health.current << std::endl;
-							int playerInvuln = 4; // Default value
+							float playerInvuln = 4; // Default value
 							try {
-								playerInvuln = config->at("Player").at("invulnPeriod").as<int>();
+								playerInvuln = config->at("Player").at("invulnPeriod").as<float>();
 							}
 							catch (const std::exception& e) {
 								std::cout << "Enemy invulnerability period not found in config, using default: " << e.what() << std::endl;
@@ -162,9 +162,9 @@ namespace GAME {
 							auto& health = registry.get<Health>(*b);
 							health.current--;
 							std::cout << "Player hit! Health reduced to: " << health.current << std::endl;
-							int playerInvuln = 4; // Default value
+							float playerInvuln = 4; // Default value
 							try {
-								playerInvuln = config->at("Player").at("invulnPeriod").as<int>();
+								playerInvuln = config->at("Player").at("invulnPeriod").as<float>();
 							}
 							catch (const std::exception& e) {
 								std::cout << "Enemy invulnerability period not found in config, using default: " << e.what() << std::endl;
