@@ -11,6 +11,22 @@ namespace GAME {
 		std::cout << "GameManager initialized" << std::endl;
 	}
 
+	void CheckGameOverConditions(entt::registry& registry) {
+		// Check if any player has health <= 0
+		auto playerView = registry.view<Player, Health>();
+		for (auto entity : playerView) {
+			auto& health = registry.get<Health>(entity);
+			if (health.current <= 0) {
+				// Add GameOver tag if not already present
+				if (registry.view<GAME::GameOver>().empty()) {
+					registry.emplace<GAME::GameOver>(registry.create());
+					std::cout << "GAME OVER: Player health reached zero!" << std::endl;
+				}
+				break;
+			}
+		}
+	}
+
 	void BounceEnemy(GVECTORF enemyLocation, GVECTORF& enemyVelocity, GOBBF& obstacleBox)
 	{
 		std::cout << "BounceEnemy called for entity at position: (" << enemyLocation.x << ", " << enemyLocation.z << ")" << std::endl;
@@ -33,6 +49,10 @@ namespace GAME {
 	}
 
 	void UpdateGameManager(entt::registry& registry, float deltaTime) {
+		if (!registry.view<GameOver>().empty()) {
+			std::cout << "Game is over - skipping game systems, rendering continues" << std::endl;
+			return; // Skip all game systems but allow rendering to continue
+		}
 		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
 		// Get the GameManager from the registry context
 		auto& gameManager = registry.ctx().get<GameManager>();
@@ -50,7 +70,7 @@ namespace GAME {
 		// Collision system
 		// Check for collisions between entities
 		auto& collisions = registry.view<Transform, MeshCollection, Collidable>();
-		
+
 		for (auto a = collisions.begin(); a != collisions.end(); a++)
 		{
 			auto colA = registry.get<MeshCollection>(*a).collider;
@@ -137,7 +157,7 @@ namespace GAME {
 						health.current--;
 						std::cout << "Enemy hit! Health reduced to: " << health.current << std::endl;
 					}
-					if (registry.all_of<Player>(*a) && registry.all_of<Enemy>(*b)){
+					if (registry.all_of<Player>(*a) && registry.all_of<Enemy>(*b)) {
 						// Damage the player if not invulnerable
 						if (!registry.all_of<GAME::Invulnerability>(*a)) {
 							auto& health = registry.get<Health>(*a);
@@ -150,13 +170,18 @@ namespace GAME {
 							catch (const std::exception& e) {
 								std::cout << "Enemy invulnerability period not found in config, using default: " << e.what() << std::endl;
 							}
-							registry.emplace<GAME::Invulnerability>(*a, playerInvuln); 
+							registry.emplace<GAME::Invulnerability>(*a, playerInvuln);
+							if (health.current <= 0) {
+								// Add GameOver tag to the GameManager entity
+								registry.emplace<GAME::GameOver>(registry.create());
+								std::cout << "GAME OVER: Player health reached zero!" << std::endl;
+							}
 						}
 						else {
 							std::cout << "Player is invulnerable, no damage taken." << std::endl;
 						}
 					}
-					if (registry.all_of<Player>(*b) && registry.all_of<Enemy>(*a)){
+					if (registry.all_of<Player>(*b) && registry.all_of<Enemy>(*a)) {
 						// Damage the player if not invulnerable
 						if (!registry.all_of<GAME::Invulnerability>(*b)) {
 							auto& health = registry.get<Health>(*b);
@@ -170,6 +195,11 @@ namespace GAME {
 								std::cout << "Enemy invulnerability period not found in config, using default: " << e.what() << std::endl;
 							}
 							registry.emplace<GAME::Invulnerability>(*b, playerInvuln);
+							if (health.current <= 0) {
+								// Add GameOver tag to the GameManager entity
+								registry.emplace<GAME::GameOver>(registry.create());
+								std::cout << "GAME OVER: Player health reached zero!" << std::endl;
+							}
 						}
 						else {
 							std::cout << "Player is invulnerable, no damage taken." << std::endl;
@@ -177,6 +207,8 @@ namespace GAME {
 					}
 				}
 			}
+			CheckGameOverConditions(registry);
+
 			auto& ToDestroy = registry.view<toDestroy>();
 			if (ToDestroy.size() > 0) {
 				std::cout << "Destroying " << ToDestroy.size() << " entities this frame" << std::endl;
@@ -250,7 +282,7 @@ namespace GAME {
 							GW::MATH::GVECTORF scale = { shatterScale, shatterScale, shatterScale };
 							GW::MATH::GMatrix::ScaleGlobalF(newTransform.matrix, scale, newTransform.matrix);
 
-							
+
 							GW::MATH::GVECTORF newDirection = UTIL::GetRandomVelocityVector();
 							GW::MATH::GVector::NormalizeF(newDirection, newDirection);
 

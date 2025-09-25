@@ -10,6 +10,7 @@ namespace GAME
 	struct Collidable {};  // Tag to identify entities that can collide
 	struct Obstacle {};   // Tag to identify static obstacles
 	struct toDestroy {};   // Tag to mark entities for destruction
+	struct GameOver {};   // Tag to indicate game over state
 
     //*** Components ***//
     struct Transform {
