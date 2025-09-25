@@ -31,19 +31,19 @@ namespace GAME {
 		GVector::SubtractVectorF(enemyVelocity, normal, enemyVelocity);
 
 	}
-	
-    void UpdateGameManager(entt::registry& registry, float deltaTime) {
-        // Get the GameManager from the registry context
-        auto& gameManager = registry.ctx().get<GameManager>();
-        // Handle keyboard input for toggling visibility 
-        HandleVisibilityToggleInput(registry);
 
-        // Update player entities (will use the Player component's on_update method) 
-        auto playerView = registry.view<Player>();
-        for (auto entity : playerView) {
-            registry.patch<Player>(entity); // This will trigger the Player's on_update method 
-        }
-		
+	void UpdateGameManager(entt::registry& registry, float deltaTime) {
+		// Get the GameManager from the registry context
+		auto& gameManager = registry.ctx().get<GameManager>();
+		// Handle keyboard input for toggling visibility 
+		HandleVisibilityToggleInput(registry);
+
+		// Update player entities (will use the Player component's on_update method) 
+		auto playerView = registry.view<Player>();
+		for (auto entity : playerView) {
+			registry.patch<Player>(entity); // This will trigger the Player's on_update method 
+		}
+
 		UpdateVelocitySystem(registry, deltaTime);
 
 		// Collision system
@@ -173,7 +173,7 @@ namespace GAME {
 			}
 			auto& ToDestroy = registry.view<toDestroy>();
 			if (ToDestroy.size() > 0) {
-				std::cout << "Destroying " << ToDestroy.size() << " entities this frame" << std::endl; 
+				std::cout << "Destroying " << ToDestroy.size() << " entities this frame" << std::endl;
 			}
 			for (auto ent : ToDestroy)
 			{
@@ -272,10 +272,11 @@ namespace GAME {
 					// Health > 0, enemy is still alive
 					// No action needed here, enemy continues to exist
 				}
-
-				// Update GPU instances from Transform components 
-				UpdateGPUInstances(registry);
 			}
+			// Update GPU instances from Transform components 
+			UpdateGPUInstances(registry);
+		}
+	}
 
 	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
 		// Get the input from the registry context
@@ -513,12 +514,12 @@ namespace GAME {
 
 			// Apply the movement
 			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
-		
-			
+
+
 		}
 	}
 
-	
+
 	// on_update method for the GameManager component
 	void on_update(entt::registry& registry, entt::entity entity) {
 		// Get the delta time from the registry context
