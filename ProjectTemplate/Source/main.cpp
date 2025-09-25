@@ -83,12 +83,19 @@ void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
 	if (!registry.all_of<GAME::MeshCollection>(enemyEntity)) {
 		registry.emplace<GAME::MeshCollection>(enemyEntity);
 	}
-
-	registry.emplace_or_replace<GAME::Collidable>(enemyEntity);
-	std::cout << "Added collider to enemy entity" << std::endl;
-
 	// Get the transform for positioning
 	auto& transform = registry.get<GAME::Transform>(enemyEntity);
+
+	if (registry.all_of<GAME::MeshCollection>(enemyEntity)) {
+	auto& enemyMeshCollection = registry.get<GAME::MeshCollection>(enemyEntity);
+	enemyMeshCollection.collider.center = { 0.0f, 0.0f, 0.0f }; // Keep this at origin
+	enemyMeshCollection.collider.extent = { 2.0f, 2.0f, 2.0f }; // Increased size for better collision
+	enemyMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };	
+	registry.emplace_or_replace<GAME::Collidable>(enemyEntity);
+	std::cout << "Added collider to enemy entity" << std::endl;
+	}
+
+
 
 	// Position the enemy somewhere visible
 	transform.matrix.row4.z = -10.0f;  // 10 units in front of player
@@ -99,24 +106,7 @@ void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
 	// Add velocity with the random direction
 	registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, 3.0f);
 
-	// Add collider to enemy - EXACTLY like bullet creation
-	auto& enemyMeshCollection = registry.get<GAME::MeshCollection>(enemyEntity);
-
-	// IMPORTANT FIX: Set the collider center to (0,0,0) in local space, not world space
-	enemyMeshCollection.collider.center = { 0.0f, 0.0f, 0.0f }; // Keep this at origin
-	enemyMeshCollection.collider.extent = { 2.0f, 2.0f, 2.0f }; // Increased size for better collision
-	enemyMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-	std::cout << "Enemy collider set with center: ("
-		<< enemyMeshCollection.collider.center.x << ", "
-		<< enemyMeshCollection.collider.center.y << ", "
-		<< enemyMeshCollection.collider.center.z << ")" << std::endl;
-
-	std::cout << "Enemy collider set with extent: ("
-		<< enemyMeshCollection.collider.extent.x << ", "
-		<< enemyMeshCollection.collider.extent.y << ", "
-		<< enemyMeshCollection.collider.extent.z << ")" << std::endl;
-}
+	}
 
 // This function will be called by the main loop to update the graphics
 // It will be responsible for loading the Level, creating the VulkanRenderer, and all VulkanInstances
