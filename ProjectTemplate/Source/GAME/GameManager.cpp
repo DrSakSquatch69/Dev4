@@ -267,17 +267,12 @@ namespace GAME {
 						std::cout << "Enemy destroyed (no shatters remaining)!" << std::endl;
 					}
 				}
-				else
-				{
-					// Health > 0, enemy is still alive
-					// No action needed here, enemy continues to exist
-				}
+				// Update GPU instances from Transform components 
+				UpdateGPUInstances(registry);
 			}
-			// Update GPU instances from Transform components 
-			UpdateGPUInstances(registry);
 		}
 	}
-
+	 
 	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
 		// Get the input from the registry context
 		auto& input = registry.ctx().get<UTIL::Input>();
