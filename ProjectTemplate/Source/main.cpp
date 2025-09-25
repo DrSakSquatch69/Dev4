@@ -72,7 +72,9 @@ void CreatePlayer(entt::registry& registry, entt::entity playerEntity)
 		playerMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 		registry.emplace<GAME::Collidable>(playerEntity);
 		std::cout << "Added collider to player entity" << std::endl;
+		
 	}
+	
 }
 
 void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
@@ -89,24 +91,25 @@ void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
 	if (registry.all_of<GAME::MeshCollection>(enemyEntity)) {
 	auto& enemyMeshCollection = registry.get<GAME::MeshCollection>(enemyEntity);
 	enemyMeshCollection.collider.center = { 0.0f, 0.0f, 0.0f }; // Keep this at origin
-	enemyMeshCollection.collider.extent = { 2.0f, 2.0f, 2.0f }; // Increased size for better collision
+	enemyMeshCollection.collider.extent = { 1.0f, 1.0f, 1.0f }; // Increased size for better collision
 	enemyMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };	
 	registry.emplace_or_replace<GAME::Collidable>(enemyEntity);
 	std::cout << "Added collider to enemy entity" << std::endl;
 	}
 
-
-
 	// Position the enemy somewhere visible
-	transform.matrix.row4.z = -10.0f;  // 10 units in front of player
+	transform.matrix.row4.x = -20.0f;  // Closer to left wall at -25
+	transform.matrix.row4.z = -10.0f;  // Keep Z position reasonable
+
+	// Use a controlled velocity toward the left wall
+	GW::MATH::GVECTORF controlledDirection = { -1.0f, 0.0f, 0.0f }; // Moving left toward wall
 
 	// Generate a random diagonal direction vector (ensures both X and Z are non-zero)
 	GW::MATH::GVECTORF randomDirection = UTIL::GetRandomVelocityVector();
 
 	// Add velocity with the random direction
 	registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, 3.0f);
-
-	}
+}
 
 // This function will be called by the main loop to update the graphics
 // It will be responsible for loading the Level, creating the VulkanRenderer, and all VulkanInstances

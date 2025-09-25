@@ -92,7 +92,7 @@ namespace GAME {
 			colA.extent.z *= vecA.z;
 
 			//Transform the center
-			GMatrix::VectorXMatrixF(transA, colA.center, colA.center);
+			colA.center = transA.row4;
 
 			//Rotate
 			GQUATERNIONF qA;
@@ -113,7 +113,7 @@ namespace GAME {
 				colB.extent.z *= vecB.z;
 
 				//Transform the center
-				GMatrix::VectorXMatrixF(transB, colB.center, colB.center);
+				colB.center = transB.row4;
 
 				//Rotate
 				GQUATERNIONF qB;
@@ -129,8 +129,8 @@ namespace GAME {
 					}
 					// These 2 are colliding!
 					std::cout << "COLLISION DETECTED between entities " << (int)*a << " and " << (int)*b << std::endl;
-					std::cout << "  Entity A: Enemy=" << registry.all_of<Enemy>(*a) << ", Obstacle=" << registry.all_of<Obstacle>(*a) << std::endl;
-					std::cout << "  Entity B: Enemy=" << registry.all_of<Enemy>(*b) << ", Obstacle=" << registry.all_of<Obstacle>(*b) << std::endl;
+					std::cout << "  Entity A: Enemy=" << registry.all_of<Enemy>(*a) << ", Obstacle=" << registry.all_of<Obstacle>(*a) << ", Player=" << registry.all_of<Player>(*a) << std::endl;
+					std::cout << "  Entity B: Enemy=" << registry.all_of<Enemy>(*b) << ", Obstacle=" << registry.all_of<Obstacle>(*b) << ", Player=" << registry.all_of<Player>(*b) << std::endl;
 					//bullet to wall
 					if (registry.all_of<Bullet>(*a) && registry.all_of<Obstacle>(*b))
 					{
