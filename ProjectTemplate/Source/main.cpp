@@ -78,6 +78,8 @@ void CreatePlayer(entt::registry& registry, entt::entity playerEntity)
 }
 
 void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
+	std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
+
 	// Always add required components (like CreatePlayer does)
 	if (!registry.all_of<GAME::Transform>(enemyEntity)) {
 		registry.emplace<GAME::Transform>(enemyEntity);
@@ -109,6 +111,27 @@ void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
 
 	// Add velocity with the random direction
 	registry.emplace<GAME::Velocity>(enemyEntity, randomDirection, 3.0f);
+
+	int enemyHealth = 4; // Default value
+	try {
+		enemyHealth = config->at("Enemy1").at("hitpoints").as<int>();
+	}
+	catch (const std::exception& e) {
+		std::cout << "Enemy health not found in config, using default: " << e.what() << std::endl;
+	}
+	registry.emplace<GAME::Health>(enemyEntity, enemyHealth, enemyHealth);
+	std::cout << "Added health to enemy entity: " << enemyHealth << std::endl;
+
+	// Add Shatters component with value from config file
+	int initialShatterCount = 2; // Default value
+	try {
+		initialShatterCount = config->at("Enemy1").at("initialShatterCount").as<int>();
+	}
+	catch (const std::exception& e) {
+		std::cout << "Initial shatter count not found in config, using default: " << e.what() << std::endl;
+	}
+	registry.emplace<GAME::Shatters>(enemyEntity, initialShatterCount);
+	std::cout << "Added shatters to enemy entity: " << initialShatterCount << std::endl;
 }
 
 // This function will be called by the main loop to update the graphics

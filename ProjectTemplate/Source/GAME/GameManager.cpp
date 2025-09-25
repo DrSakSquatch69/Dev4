@@ -31,7 +31,7 @@ namespace GAME {
 		GVector::SubtractVectorF(enemyVelocity, normal, enemyVelocity);
 
 	}
-
+	
     void UpdateGameManager(entt::registry& registry, float deltaTime) {
         // Get the GameManager from the registry context
         auto& gameManager = registry.ctx().get<GameManager>();
@@ -49,36 +49,36 @@ namespace GAME {
 		// Collision system
 		// Check for collisions between entities
 		auto& collisions = registry.view<Transform, MeshCollection, Collidable>();
-		std::cout << "\=== DETAILED COLLISION DEBUG ===" << std::endl;
-		std::cout << "Total entities in collision view: " << collisions.size_hint() << std::endl;
+		//std::cout << "\=== DETAILED COLLISION DEBUG ===" << std::endl;
+		//std::cout << "Total entities in collision view: " << collisions.size_hint() << std::endl;
 
-		// Print detailed entity information
-		for (auto entity : collisions) {
-			std::cout << "Entity " << (int)entity << ": ";
-			if (registry.all_of<GAME::Enemy>(entity)) std::cout << "Enemy ";
-			if (registry.all_of<GAME::Obstacle>(entity)) std::cout << "Obstacle ";
-			if (registry.all_of<GAME::Bullet>(entity)) std::cout << "Bullet ";
-			if (registry.all_of<GAME::Player>(entity)) std::cout << "Player ";
+		//// Print detailed entity information
+		//for (auto entity : collisions) {
+		//	std::cout << "Entity " << (int)entity << ": ";
+		//	if (registry.all_of<GAME::Enemy>(entity)) std::cout << "Enemy ";
+		//	if (registry.all_of<GAME::Obstacle>(entity)) std::cout << "Obstacle ";
+		//	if (registry.all_of<GAME::Bullet>(entity)) std::cout << "Bullet ";
+		//	if (registry.all_of<GAME::Player>(entity)) std::cout << "Player ";
 
-			auto& transform = registry.get<GAME::Transform>(entity);
-			auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
+		//	auto& transform = registry.get<GAME::Transform>(entity);
+		//	auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
 
-			std::cout << std::endl;
-			std::cout << "  Position: ("
-				<< transform.matrix.row4.x << ", "
-				<< transform.matrix.row4.y << ", "
-				<< transform.matrix.row4.z << ")" << std::endl;
+		//	std::cout << std::endl;
+		//	std::cout << "  Position: ("
+		//		<< transform.matrix.row4.x << ", "
+		//		<< transform.matrix.row4.y << ", "
+		//		<< transform.matrix.row4.z << ")" << std::endl;
 
-			std::cout << "  Collider: Center=("
-				<< meshCollection.collider.center.x << ", "
-				<< meshCollection.collider.center.y << ", "
-				<< meshCollection.collider.center.z << "), ";
+		//	std::cout << "  Collider: Center=("
+		//		<< meshCollection.collider.center.x << ", "
+		//		<< meshCollection.collider.center.y << ", "
+		//		<< meshCollection.collider.center.z << "), ";
 
-			std::cout << "Extent=("
-				<< meshCollection.collider.extent.x << ", "
-				<< meshCollection.collider.extent.y << ", "
-				<< meshCollection.collider.extent.z << ")" << std::endl;
-		}
+		//	std::cout << "Extent=("
+		//		<< meshCollection.collider.extent.x << ", "
+		//		<< meshCollection.collider.extent.y << ", "
+		//		<< meshCollection.collider.extent.z << ")" << std::endl;
+		//}
 		for (auto a = collisions.begin(); a != collisions.end(); a++)
 		{
 			auto colA = registry.get<MeshCollection>(*a).collider;
@@ -151,6 +151,24 @@ namespace GAME {
 						auto& vel = registry.get<Velocity>(*b).direction;
 						BounceEnemy(transB.row4, vel, colA);
 					}
+					if (registry.all_of<Bullet>(*a) && registry.all_of<Enemy>(*b))
+					{
+						// Destroy the bullet
+						registry.emplace_or_replace<toDestroy>(*a);
+						// Reduce enemy health
+						auto& health = registry.get<Health>(*b);
+						health.current--;
+						std::cout << "Enemy hit! Health reduced to: " << health.current << std::endl;
+					}
+					if (registry.all_of<Bullet>(*b) && registry.all_of<Enemy>(*a))
+					{
+						// Destroy the bullet
+						registry.emplace_or_replace<toDestroy>(*b);
+						// Reduce enemy health
+						auto& health = registry.get<Health>(*a);
+						health.current--;
+						std::cout << "Enemy hit! Health reduced to: " << health.current << std::endl;
+					}
 				}
 			}
 			auto& ToDestroy = registry.view<toDestroy>();
@@ -173,7 +191,88 @@ namespace GAME {
 				registry.destroy(ent);
 				std::cout << "  - Main entity destroyed successfully" << std::endl;
 			}
-		}
+			auto enemyHealthView = registry.view<Enemy, Health>();
+			for (auto enemyEntity : enemyHealthView)
+			{
+				auto& health = registry.get<Health>(enemyEntity);
+				if (health.current <= 0)
+				{
+					// Check if this enemy shatters
+					if (registry.all_of<Shatters>(enemyEntity))
+					{
+						auto& shatters = registry.get<Shatters>(enemyEntity);
+						auto& transform = registry.get<Transform>(enemyEntity);
+
+						// Get shatter configuration from config file
+						std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
+						int shatterAmount = 2; // Default value
+						float shatterScale = 0.7f; // Default value
+						try {
+							shatterAmount = config->at("Enemy1").at("shatterAmount").as<int>();
+							shatterScale = config->at("Enemy1").at("shatterScale").as<float>();
+						}
+						catch (const std::exception& e) {
+							std::cout << "Shatter config not found, using defaults: " << e.what() << std::endl;
+						}
+
+						// Set up velocity for shattered enemies
+						GW::MATH::GVECTORF controlledDirection = { -1.0f, 0.0f, 0.0f }; // Moving left toward wall
+						if (rand() % 2 == 0) controlledDirection.x = 1.0f; // Random direction
+						if (rand() % 2 == 0) controlledDirection.z = (float)(rand() % 10 - 5) * 0.1f; // Random Z component
+
+						// Create shatterAmount new enemies
+						for (int i = 0; i < shatterAmount; i++)
+						{
+							// Create new enemy entity
+							entt::entity newEnemy = registry.create();
+
+							// Copy basic components from original enemy
+							registry.emplace<GAME::Transform>(newEnemy);
+							registry.emplace<GAME::MeshCollection>(newEnemy);
+							registry.emplace<GAME::Collidable>(newEnemy);
+							registry.emplace<GAME::Health>(newEnemy, health.maximum, health.maximum);
+							registry.emplace<GAME::Velocity>(newEnemy, controlledDirection, 3.0f);
+
+							// Set up transform with scaled position near original
+							auto& newTransform = registry.get<GAME::Transform>(newEnemy);
+							newTransform.matrix = transform.matrix;
+							newTransform.matrix.row4.x += (float)(rand() % 10 - 5) * 0.1f; // Small random offset
+							newTransform.matrix.row4.z += (float)(rand() % 10 - 5) * 0.1f; // Small random offset
+
+							// Apply scale reduction
+							GW::MATH::GVECTORF scale = { shatterScale, shatterScale, shatterScale };
+							GW::MATH::GMatrix::ScaleGlobalF(newTransform.matrix, scale, newTransform.matrix);
+
+							// Decrement shatter count and only add Shatters if more remain
+							int newShatterCount = shatters.remaining - 1;
+							if (newShatterCount > 0)
+							{
+								registry.emplace<GAME::Shatters>(newEnemy, newShatterCount);
+							}
+
+							// Add Enemy tag
+							registry.emplace<GAME::Enemy>(newEnemy);
+
+							std::cout << "Created shatter enemy " << i + 1 << " with scale " << shatterScale << std::endl;
+						}
+
+						// Mark original enemy for destruction
+						registry.emplace_or_replace<toDestroy>(enemyEntity);
+						std::cout << "Enemy shattered into " << shatterAmount << " smaller enemies!" << std::endl;
+					}
+					else
+					{
+						// No shatters remaining, just destroy the enemy
+						registry.emplace_or_replace<toDestroy>(enemyEntity);
+						std::cout << "Enemy destroyed (no shatters remaining)!" << std::endl;
+					}
+				}
+				else
+				{
+					// Health > 0, enemy is still alive
+					// No action needed here, enemy continues to exist
+				}
+			}
         // Update GPU instances from Transform components 
         UpdateGPUInstances(registry); 
     }

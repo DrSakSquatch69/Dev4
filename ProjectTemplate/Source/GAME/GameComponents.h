@@ -32,5 +32,13 @@ namespace GAME
         float speed;                   // How fast to move (like 10 units per second)
     };
 
+    struct Health {
+        int current;  // Current health value
+        int maximum;  // Maximum health value
+    };
+
+    struct Shatters {
+        int remaining;  // How many more times this enemy can shatter
+    };
 }// namespace GAME
 #endif // !GAME_COMPONENTS_H_
