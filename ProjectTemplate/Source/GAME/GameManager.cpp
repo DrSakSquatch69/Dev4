@@ -220,18 +220,24 @@ namespace GAME {
 						if (rand() % 2 == 0) controlledDirection.x = 1.0f; // Random direction
 						if (rand() % 2 == 0) controlledDirection.z = (float)(rand() % 10 - 5) * 0.1f; // Random Z component
 
-						// Create shatterAmount new enemies
+						// Get enemy model name for shatter enemies
+						std::shared_ptr<const GameConfig> shatterConfig = registry.ctx().get<UTIL::Config>().gameConfig;
+						std::string enemyModelName = "Cactus"; // Default value
+						try {
+							enemyModelName = shatterConfig->at("Enemy1").at("model").as<std::string>();
+						}
+						catch (const std::exception& e) {
+							std::cout << "Shatter enemy model not found in config, using default: " << e.what() << std::endl;
+						}
+
+						// Create shatterAmount new enemies using the model system
 						for (int i = 0; i < shatterAmount; i++)
 						{
-							// Create new enemy entity
-							entt::entity newEnemy = registry.create();
+							// Create new enemy entity using the model system
+							entt::entity newEnemy = CreateGameEntityFromModel(registry, enemyModelName);
 
-							// Copy basic components from original enemy
-							registry.emplace<GAME::Transform>(newEnemy);
-							registry.emplace<GAME::MeshCollection>(newEnemy);
-							registry.emplace<GAME::Collidable>(newEnemy);
-							registry.emplace<GAME::Health>(newEnemy, health.maximum, health.maximum);
-							registry.emplace<GAME::Velocity>(newEnemy, controlledDirection, 3.0f);
+							// Add Enemy tag
+							registry.emplace<GAME::Enemy>(newEnemy);
 
 							// Set up transform with scaled position near original
 							auto& newTransform = registry.get<GAME::Transform>(newEnemy);
@@ -243,6 +249,12 @@ namespace GAME {
 							GW::MATH::GVECTORF scale = { shatterScale, shatterScale, shatterScale };
 							GW::MATH::GMatrix::ScaleGlobalF(newTransform.matrix, scale, newTransform.matrix);
 
+							// Set velocity for new enemy
+							registry.emplace<GAME::Velocity>(newEnemy, controlledDirection, 3.0f);
+
+							// Set health for new enemy
+							registry.emplace<GAME::Health>(newEnemy, health.maximum, health.maximum);
+
 							// Decrement shatter count and only add Shatters if more remain
 							int newShatterCount = shatters.remaining - 1;
 							if (newShatterCount > 0)
@@ -250,8 +262,10 @@ namespace GAME {
 								registry.emplace<GAME::Shatters>(newEnemy, newShatterCount);
 							}
 
-							// Add Enemy tag
-							registry.emplace<GAME::Enemy>(newEnemy);
+							// Ensure collidable is added
+							if (!registry.all_of<GAME::Collidable>(newEnemy)) {
+								registry.emplace<GAME::Collidable>(newEnemy);
+							}
 
 							std::cout << "Created shatter enemy " << i + 1 << " with scale " << shatterScale << std::endl;
 						}
@@ -267,12 +281,17 @@ namespace GAME {
 						std::cout << "Enemy destroyed (no shatters remaining)!" << std::endl;
 					}
 				}
-				// Update GPU instances from Transform components 
-				UpdateGPUInstances(registry);
+				else
+				{
+					// Health > 0, enemy is still alive
+					// No action needed here, enemy continues to exist
+				}
 			}
+			// Update GPU instances from Transform components 
+			UpdateGPUInstances(registry);
 		}
 	}
-	 
+
 	void UpdatePlayerMovement(entt::registry& registry, float deltaTime) {
 		// Get the input from the registry context
 		auto& input = registry.ctx().get<UTIL::Input>();
