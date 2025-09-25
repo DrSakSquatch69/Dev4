@@ -41,8 +41,7 @@ namespace GAME
 		// Apply movement to transform if there is any movement 
 		if (movement.x != 0.0f || movement.z != 0.0f) {
 			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
-			std::cout << "Player moved: " << movement.x << ", " << movement.z << std::endl;
-		}
+			}
 
 		if (registry.all_of<GAME::Invulnerability>(entity)) {
 			auto& invuln = registry.get<GAME::Invulnerability>(entity);

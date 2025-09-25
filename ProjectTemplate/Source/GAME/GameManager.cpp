@@ -50,36 +50,7 @@ namespace GAME {
 		// Collision system
 		// Check for collisions between entities
 		auto& collisions = registry.view<Transform, MeshCollection, Collidable>();
-		//std::cout << "\=== DETAILED COLLISION DEBUG ===" << std::endl;
-		//std::cout << "Total entities in collision view: " << collisions.size_hint() << std::endl;
-
-		//// Print detailed entity information
-		//for (auto entity : collisions) {
-		//	std::cout << "Entity " << (int)entity << ": ";
-		//	if (registry.all_of<GAME::Enemy>(entity)) std::cout << "Enemy ";
-		//	if (registry.all_of<GAME::Obstacle>(entity)) std::cout << "Obstacle ";
-		//	if (registry.all_of<GAME::Bullet>(entity)) std::cout << "Bullet ";
-		//	if (registry.all_of<GAME::Player>(entity)) std::cout << "Player ";
-
-		//	auto& transform = registry.get<GAME::Transform>(entity);
-		//	auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
-
-		//	std::cout << std::endl;
-		//	std::cout << "  Position: ("
-		//		<< transform.matrix.row4.x << ", "
-		//		<< transform.matrix.row4.y << ", "
-		//		<< transform.matrix.row4.z << ")" << std::endl;
-
-		//	std::cout << "  Collider: Center=("
-		//		<< meshCollection.collider.center.x << ", "
-		//		<< meshCollection.collider.center.y << ", "
-		//		<< meshCollection.collider.center.z << "), ";
-
-		//	std::cout << "Extent=("
-		//		<< meshCollection.collider.extent.x << ", "
-		//		<< meshCollection.collider.extent.y << ", "
-		//		<< meshCollection.collider.extent.z << ")" << std::endl;
-		//}
+		
 		for (auto a = collisions.begin(); a != collisions.end(); a++)
 		{
 			auto colA = registry.get<MeshCollection>(*a).collider;
@@ -128,10 +99,6 @@ namespace GAME {
 					if (registry.all_of<Obstacle>(*a) && registry.all_of<Obstacle>(*b)) {
 						continue; // Skip to next iteration
 					}
-					// These 2 are colliding!
-					std::cout << "COLLISION DETECTED between entities " << (int)*a << " and " << (int)*b << std::endl;
-					std::cout << "  Entity A: Enemy=" << registry.all_of<Enemy>(*a) << ", Obstacle=" << registry.all_of<Obstacle>(*a) << ", Player=" << registry.all_of<Player>(*a) << std::endl;
-					std::cout << "  Entity B: Enemy=" << registry.all_of<Enemy>(*b) << ", Obstacle=" << registry.all_of<Obstacle>(*b) << ", Player=" << registry.all_of<Player>(*b) << std::endl;
 					//bullet to wall
 					if (registry.all_of<Bullet>(*a) && registry.all_of<Obstacle>(*b))
 					{
