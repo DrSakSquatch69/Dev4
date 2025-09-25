@@ -170,8 +170,7 @@ namespace GAME {
 						health.current--;
 						std::cout << "Enemy hit! Health reduced to: " << health.current << std::endl;
 					}
-					if (registry.all_of<Player>(*a) && registry.all_of<Enemy>(*b))
-					{
+					if (registry.all_of<Player>(*a) && registry.all_of<Enemy>(*b)){
 						// Damage the player if not invulnerable
 						if (!registry.all_of<GAME::Invulnerability>(*a)) {
 							auto& health = registry.get<Health>(*a);
