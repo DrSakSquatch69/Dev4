@@ -184,7 +184,7 @@ namespace GAME {
 							catch (const std::exception& e) {
 								std::cout << "Enemy invulnerability period not found in config, using default: " << e.what() << std::endl;
 							}
-							registry.emplace_or_replace<Invulnerability>(*a, playerInvuln); 
+							registry.emplace<GAME::Invulnerability>(*a, playerInvuln); 
 						}
 						else {
 							std::cout << "Player is invulnerable, no damage taken." << std::endl;
@@ -203,7 +203,7 @@ namespace GAME {
 							catch (const std::exception& e) {
 								std::cout << "Enemy invulnerability period not found in config, using default: " << e.what() << std::endl;
 							}
-							registry.emplace_or_replace<Invulnerability>(*b, playerInvuln);
+							registry.emplace<GAME::Invulnerability>(*b, playerInvuln);
 						}
 						else {
 							std::cout << "Player is invulnerable, no damage taken." << std::endl;
