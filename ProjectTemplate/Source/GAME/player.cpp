@@ -43,7 +43,17 @@ namespace GAME
 			GW::MATH::GMatrix::TranslateGlobalF(transform.matrix, movement, transform.matrix);
 			std::cout << "Player moved: " << movement.x << ", " << movement.z << std::endl;
 		}
+		if (registry.all_of<Invulnerability>(entity)) {
+			// Reduce the cooldown
+			auto& invuln = registry.get<Firing>(entity);
+			invuln.cooldown -= deltaTime;
 
+			// If cooldown reaches 0 or below, remove the Firing component
+			if (invuln.cooldown <= 0.0f) {
+				registry.remove<Invulnerability>(entity);
+				std::cout << "Firing cooldown complete, ready to fire again" << std::endl;
+			}
+		}
 		// Handle firing logic
 		// First check if the player has a Firing component
 		if (registry.all_of<Firing>(entity)) {

@@ -33,6 +33,7 @@ namespace GAME {
 	}
 
 	void UpdateGameManager(entt::registry& registry, float deltaTime) {
+		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
 		// Get the GameManager from the registry context
 		auto& gameManager = registry.ctx().get<GameManager>();
 		// Handle keyboard input for toggling visibility 
@@ -168,6 +169,45 @@ namespace GAME {
 						auto& health = registry.get<Health>(*a);
 						health.current--;
 						std::cout << "Enemy hit! Health reduced to: " << health.current << std::endl;
+					}
+					if (registry.all_of<Player>(*a) && registry.all_of<Enemy>(*b))
+					{
+						// Damage the player if not invulnerable
+						if (!registry.all_of<GAME::Invulnerability>(*a)) {
+							auto& health = registry.get<Health>(*a);
+							health.current--;
+							std::cout << "Player hit! Health reduced to: " << health.current << std::endl;
+							int playerInvuln = 4; // Default value
+							try {
+								playerInvuln = config->at("Player").at("invulnPeriod").as<int>();
+							}
+							catch (const std::exception& e) {
+								std::cout << "Enemy invulnerability period not found in config, using default: " << e.what() << std::endl;
+							}
+							registry.emplace_or_replace<Invulnerability>(*a, playerInvuln); 
+						}
+						else {
+							std::cout << "Player is invulnerable, no damage taken." << std::endl;
+						}
+					}
+					if (registry.all_of<Player>(*b) && registry.all_of<Enemy>(*a)){
+						// Damage the player if not invulnerable
+						if (!registry.all_of<GAME::Invulnerability>(*b)) {
+							auto& health = registry.get<Health>(*b);
+							health.current--;
+							std::cout << "Player hit! Health reduced to: " << health.current << std::endl;
+							int playerInvuln = 4; // Default value
+							try {
+								playerInvuln = config->at("Player").at("invulnPeriod").as<int>();
+							}
+							catch (const std::exception& e) {
+								std::cout << "Enemy invulnerability period not found in config, using default: " << e.what() << std::endl;
+							}
+							registry.emplace_or_replace<Invulnerability>(*b, playerInvuln);
+						}
+						else {
+							std::cout << "Player is invulnerable, no damage taken." << std::endl;
+						}
 					}
 				}
 			}

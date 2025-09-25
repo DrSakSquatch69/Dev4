@@ -27,6 +27,10 @@ namespace GAME
         float maxCooldown; // Maximum cooldown time
     };
 
+    struct Invulnerability {
+        int cooldown;    // Current cooldown time remaining
+        };
+
     struct Velocity {
         GW::MATH::GVECTORF direction;  // Which way to move (like a compass direction)
         float speed;                   // How fast to move (like 10 units per second)
