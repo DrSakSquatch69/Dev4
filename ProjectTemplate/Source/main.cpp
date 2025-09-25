@@ -93,7 +93,7 @@ void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {
 	if (registry.all_of<GAME::MeshCollection>(enemyEntity)) {
 	auto& enemyMeshCollection = registry.get<GAME::MeshCollection>(enemyEntity);
 	enemyMeshCollection.collider.center = { 0.0f, 0.0f, 0.0f }; // Keep this at origin
-	enemyMeshCollection.collider.extent = { 1.0f, 1.0f, 1.0f }; // Increased size for better collision
+	enemyMeshCollection.collider.extent = { 2.0f, 2.0f, 2.0f }; // Increased size for better collision
 	enemyMeshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };	
 	registry.emplace_or_replace<GAME::Collidable>(enemyEntity);
 	std::cout << "Added collider to enemy entity" << std::endl;

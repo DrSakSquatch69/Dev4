@@ -215,11 +215,6 @@ namespace GAME {
 							std::cout << "Shatter config not found, using defaults: " << e.what() << std::endl;
 						}
 
-						// Set up velocity for shattered enemies
-						GW::MATH::GVECTORF controlledDirection = { -1.0f, 0.0f, 0.0f }; // Moving left toward wall
-						if (rand() % 2 == 0) controlledDirection.x = 1.0f; // Random direction
-						if (rand() % 2 == 0) controlledDirection.z = (float)(rand() % 10 - 5) * 0.1f; // Random Z component
-
 						// Get enemy model name for shatter enemies
 						std::shared_ptr<const GameConfig> shatterConfig = registry.ctx().get<UTIL::Config>().gameConfig;
 						std::string enemyModelName = "Cactus"; // Default value
@@ -249,8 +244,12 @@ namespace GAME {
 							GW::MATH::GVECTORF scale = { shatterScale, shatterScale, shatterScale };
 							GW::MATH::GMatrix::ScaleGlobalF(newTransform.matrix, scale, newTransform.matrix);
 
-							// Set velocity for new enemy
-							registry.emplace<GAME::Velocity>(newEnemy, controlledDirection, 3.0f);
+							
+							GW::MATH::GVECTORF newDirection = UTIL::GetRandomVelocityVector();
+							GW::MATH::GVector::NormalizeF(newDirection, newDirection);
+
+							// Set velocity with random direction
+							registry.emplace<GAME::Velocity>(newEnemy, newDirection, 3.0f);
 
 							// Set health for new enemy
 							registry.emplace<GAME::Health>(newEnemy, health.maximum, health.maximum);
@@ -267,6 +266,14 @@ namespace GAME {
 								registry.emplace<GAME::Collidable>(newEnemy);
 							}
 
+							if (registry.all_of<GAME::MeshCollection>(newEnemy)) {
+								auto& meshCollection = registry.get<GAME::MeshCollection>(newEnemy);
+								// Ensure the collider is set up correctly
+								meshCollection.collider.center = { 0.0f, 0.0f, 0.0f };
+								meshCollection.collider.extent = { 2.0f, 2.0f, 2.0f };
+								meshCollection.collider.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+							}
+
 							std::cout << "Created shatter enemy " << i + 1 << " with scale " << shatterScale << std::endl;
 						}
 
@@ -280,11 +287,6 @@ namespace GAME {
 						registry.emplace_or_replace<toDestroy>(enemyEntity);
 						std::cout << "Enemy destroyed (no shatters remaining)!" << std::endl;
 					}
-				}
-				else
-				{
-					// Health > 0, enemy is still alive
-					// No action needed here, enemy continues to exist
 				}
 			}
 			// Update GPU instances from Transform components 
