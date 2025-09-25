@@ -38,7 +38,16 @@ namespace GAME {
 		auto& gameManager = registry.ctx().get<GameManager>();
 		// Handle keyboard input for toggling visibility 
 		HandleVisibilityToggleInput(registry);
-
+		// Check if game is over - if GameOver tag is present, skip game systems
+		if (registry.view<GameOver>().size() > 0) {
+			// Game is over - skip game systems but keep rendering
+			// Only process destruction and cleanup
+			auto& ToDestroy = registry.view<toDestroy>();
+			for (auto entity : ToDestroy) {
+				registry.destroy(entity);
+			}
+			return;
+		}
 		// Update player entities (will use the Player component's on_update method) 
 		auto playerView = registry.view<Player>();
 		for (auto entity : playerView) {
