@@ -11,20 +11,42 @@ namespace GAME {
 		std::cout << "GameManager initialized" << std::endl;
 	}
 
+    void CheckNoEnemiesLeft(entt::registry& registry) {
+        auto enemyView = registry.view<Enemy>();
+        if (enemyView.empty()) {
+            // No enemies left, check if game is already over
+            if (registry.view<GAME::GameOver>().empty()) {
+                registry.emplace<GAME::GameOver>(registry.create());
+                std::cout << "You win, good job!" << std::endl;
+            }
+        }
+    }
+
+    void CheckAllPlayersHealth(entt::registry& registry) {
+        auto playerView = registry.view<Player, Health>();
+        if (playerView.begin() == playerView.end()) {
+            return; // No players, nothing to check
+        }
+
+        bool allPlayersDead = true;
+        for (auto entity : playerView) {
+            auto& health = registry.get<Health>(entity);
+            if (health.current > 0) {
+                allPlayersDead = false;
+                break;
+            }
+        }
+
+        if (allPlayersDead && registry.view<GAME::GameOver>().empty()) {
+            registry.emplace<GAME::GameOver>(registry.create());
+            std::cout << "You lose, game over" << std::endl;
+        }
+    }
+
 	void CheckGameOverConditions(entt::registry& registry) {
-		// Check if any player has health <= 0
-		auto playerView = registry.view<Player, Health>();
-		for (auto entity : playerView) {
-			auto& health = registry.get<Health>(entity);
-			if (health.current <= 0) {
-				// Add GameOver tag if not already present
-				if (registry.view<GAME::GameOver>().empty()) {
-					registry.emplace<GAME::GameOver>(registry.create());
-					std::cout << "GAME OVER: Player health reached zero!" << std::endl;
-				}
-				break;
-			}
-		}
+		// Check all game over conditions
+		CheckAllPlayersHealth(registry);
+		CheckNoEnemiesLeft(registry);
 	}
 
 	void BounceEnemy(GVECTORF enemyLocation, GVECTORF& enemyVelocity, GOBBF& obstacleBox)
@@ -139,8 +161,7 @@ namespace GAME {
 						auto& vel = registry.get<Velocity>(*b).direction;
 						BounceEnemy(transB.row4, vel, colA);
 					}
-					if (registry.all_of<Bullet>(*a) && registry.all_of<Enemy>(*b))
-					{
+					if (registry.all_of<Bullet>(*a) && registry.all_of<Enemy>(*b)) {
 						// Destroy the bullet
 						registry.emplace_or_replace<toDestroy>(*a);
 						// Reduce enemy health
@@ -148,8 +169,7 @@ namespace GAME {
 						health.current--;
 						std::cout << "Enemy hit! Health reduced to: " << health.current << std::endl;
 					}
-					if (registry.all_of<Bullet>(*b) && registry.all_of<Enemy>(*a))
-					{
+					if (registry.all_of<Bullet>(*b) && registry.all_of<Enemy>(*a)) {
 						// Destroy the bullet
 						registry.emplace_or_replace<toDestroy>(*b);
 						// Reduce enemy health
@@ -329,6 +349,7 @@ namespace GAME {
 			}
 			// Update GPU instances from Transform components 
 			UpdateGPUInstances(registry);
+			CheckNoEnemiesLeft(registry);
 		}
 	}
 
