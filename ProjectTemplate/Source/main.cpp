@@ -54,6 +54,7 @@ int main()
 
 void CreatePlayer(entt::registry& registry, entt::entity playerEntity)
 {
+	std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
 	// Always add required components
 	if (!registry.all_of<GAME::Transform>(playerEntity)) {
 		registry.emplace<GAME::Transform>(playerEntity);
@@ -75,6 +76,16 @@ void CreatePlayer(entt::registry& registry, entt::entity playerEntity)
 		
 	}
 	
+	int playerHealth = 4; // Default value
+	try {
+		playerHealth = config->at("Player").at("hitpoints").as<int>();
+	}
+	catch (const std::exception& e) {
+		std::cout << "Player health not found in config, using default: " << e.what() << std::endl;
+	}
+	registry.emplace<GAME::Health>(playerEntity, playerHealth, playerHealth);
+	std::cout << "Added health to enemy entity: " << playerHealth << std::endl;
+
 }
 
 void CreateEnemy(entt::registry& registry, entt::entity enemyEntity) {

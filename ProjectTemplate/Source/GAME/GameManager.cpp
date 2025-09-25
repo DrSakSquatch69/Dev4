@@ -33,6 +33,7 @@ namespace GAME {
 	}
 
 	void UpdateGameManager(entt::registry& registry, float deltaTime) {
+		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
 		// Get the GameManager from the registry context
 		auto& gameManager = registry.ctx().get<GameManager>();
 		// Handle keyboard input for toggling visibility 
@@ -169,6 +170,62 @@ namespace GAME {
 						health.current--;
 						std::cout << "Enemy hit! Health reduced to: " << health.current << std::endl;
 					}
+					if (registry.all_of<Player>(*a) && registry.all_of<Enemy>(*b))
+					{
+							auto& health = registry.get<Health>(*a);
+						// Damage the player if not invulnerable
+						if (!registry.all_of<Invulnerable>(*a)) {
+							health.current--;
+							std::cout << "Player hit! Health reduced to: " << health.current << std::endl;
+							// Add invulnerability for a short time
+							int playerInvuln= 4; // Default value
+							try {
+								playerInvuln = config->at("Player").at("invulnPeriod").as<int>();
+							}
+							catch (const std::exception& e) {
+								std::cout << "Player invulnPeriod not found in config, using default: " << e.what() << std::endl;
+							}
+							registry.emplace<GAME::Health>(*a, playerInvuln, playerInvuln);
+						}
+						else {
+							std::cout << "Player is invulnerable, no damage taken." << std::endl;
+						}
+
+						// Check if player is destroyed
+						if (health.current <= 0)
+						{
+							registry.emplace_or_replace<toDestroy>(*a);
+							std::cout << "Player destroyed! Game Over!" << std::endl;
+						}
+					}
+					if (registry.all_of<Player>(*b) && registry.all_of<Enemy>(*a))
+					{
+							auto& health = registry.get<Health>(*b);
+						// Damage the player if not invulnerable
+						if (!registry.all_of<Invulnerable>(*b)) {
+							health.current--;
+							std::cout << "Player hit! Health reduced to: " << health.current << std::endl;
+							// Add invulnerability for a short time
+							int playerInvuln = 4; // Default value
+							try {
+								playerInvuln = config->at("Player").at("invulnPeriod").as<int>();
+							}
+							catch (const std::exception& e) {
+								std::cout << "Player invulnPeriod not found in config, using default: " << e.what() << std::endl;
+							}
+							registry.emplace_or_replace<GAME::Invulnerable>(*b, playerInvuln);
+						}
+						else {
+							std::cout << "Player is invulnerable, no damage taken." << std::endl;
+						}
+
+						// Check if player is destroyed
+						if (health.current <= 0)
+						{
+							registry.emplace_or_replace<toDestroy>(*b);
+							std::cout << "Player destroyed! Game Over!" << std::endl;
+						}
+					}
 				}
 			}
 			auto& ToDestroy = registry.view<toDestroy>();
@@ -204,7 +261,7 @@ namespace GAME {
 						auto& transform = registry.get<Transform>(enemyEntity);
 
 						// Get shatter configuration from config file
-						std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
+						
 						int shatterAmount = 2; // Default value
 						float shatterScale = 0.7f; // Default value
 						try {
