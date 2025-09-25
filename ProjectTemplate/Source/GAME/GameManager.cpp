@@ -31,6 +31,43 @@ namespace GAME {
 		GVector::SubtractVectorF(enemyVelocity, normal, enemyVelocity);
 
 	}
+	void CheckGameOverCondition(entt::registry& registry)
+	{
+		// If game is already over, no need to check
+		if (registry.view<GameOver>().size() > 0) {
+			return;
+		}
+
+		// Get all player entities
+		auto playerView = registry.view<Player, Health>();
+
+		// If no players exist, return (game not started yet)
+		if (playerView.size_hint() == 0) {
+			return;
+		}
+
+		// Check if all players are dead
+		bool allPlayersDead = true;
+
+		for (auto entity : playerView) {
+			auto& health = registry.get<Health>(entity);
+
+			// If any player has health > 0, not all players are dead
+			if (health.current > 0) {
+				allPlayersDead = false;
+				break;
+			}
+		}
+
+		// If all players are dead, trigger game over
+		if (allPlayersDead) {
+			// Create GameOver entity
+			entt::entity gameOverEntity = registry.create();
+			registry.emplace<GameOver>(gameOverEntity);
+
+			std::cout << "You lose, game over" << std::endl;
+		}
+	}
 
 	void UpdateGameManager(entt::registry& registry, float deltaTime) {
 		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
@@ -59,36 +96,7 @@ namespace GAME {
 		// Collision system
 		// Check for collisions between entities
 		auto& collisions = registry.view<Transform, MeshCollection, Collidable>();
-		//std::cout << "\=== DETAILED COLLISION DEBUG ===" << std::endl;
-		//std::cout << "Total entities in collision view: " << collisions.size_hint() << std::endl;
-
-		//// Print detailed entity information
-		//for (auto entity : collisions) {
-		//	std::cout << "Entity " << (int)entity << ": ";
-		//	if (registry.all_of<GAME::Enemy>(entity)) std::cout << "Enemy ";
-		//	if (registry.all_of<GAME::Obstacle>(entity)) std::cout << "Obstacle ";
-		//	if (registry.all_of<GAME::Bullet>(entity)) std::cout << "Bullet ";
-		//	if (registry.all_of<GAME::Player>(entity)) std::cout << "Player ";
-
-		//	auto& transform = registry.get<GAME::Transform>(entity);
-		//	auto& meshCollection = registry.get<GAME::MeshCollection>(entity);
-
-		//	std::cout << std::endl;
-		//	std::cout << "  Position: ("
-		//		<< transform.matrix.row4.x << ", "
-		//		<< transform.matrix.row4.y << ", "
-		//		<< transform.matrix.row4.z << ")" << std::endl;
-
-		//	std::cout << "  Collider: Center=("
-		//		<< meshCollection.collider.center.x << ", "
-		//		<< meshCollection.collider.center.y << ", "
-		//		<< meshCollection.collider.center.z << "), ";
-
-		//	std::cout << "Extent=("
-		//		<< meshCollection.collider.extent.x << ", "
-		//		<< meshCollection.collider.extent.y << ", "
-		//		<< meshCollection.collider.extent.z << ")" << std::endl;
-		//}
+		
 		for (auto a = collisions.begin(); a != collisions.end(); a++)
 		{
 			auto colA = registry.get<MeshCollection>(*a).collider;
@@ -181,35 +189,33 @@ namespace GAME {
 					}
 					if (registry.all_of<Player>(*a) && registry.all_of<Enemy>(*b))
 					{
-							auto& health = registry.get<Health>(*a);
+						auto& health = registry.get<Health>(*a);
 						// Damage the player if not invulnerable
 						if (!registry.all_of<Invulnerable>(*a)) {
 							health.current--;
 							std::cout << "Player hit! Health reduced to: " << health.current << std::endl;
 							// Add invulnerability for a short time
-							int playerInvuln= 4; // Default value
+							int playerInvuln = 4; // Default value
 							try {
 								playerInvuln = config->at("Player").at("invulnPeriod").as<int>();
 							}
 							catch (const std::exception& e) {
 								std::cout << "Player invulnPeriod not found in config, using default: " << e.what() << std::endl;
 							}
-							registry.emplace<GAME::Health>(*a, playerInvuln, playerInvuln);
+							registry.emplace<GAME::Invulnerable>(*a, playerInvuln);
 						}
 						else {
 							std::cout << "Player is invulnerable, no damage taken." << std::endl;
 						}
 
 						// Check if player is destroyed
-						if (health.current <= 0)
-						{
+						if (health.current <= 0) {
 							registry.emplace_or_replace<toDestroy>(*a);
-							std::cout << "Player destroyed! Game Over!" << std::endl;
 						}
 					}
 					if (registry.all_of<Player>(*b) && registry.all_of<Enemy>(*a))
 					{
-							auto& health = registry.get<Health>(*b);
+						auto& health = registry.get<Health>(*b);
 						// Damage the player if not invulnerable
 						if (!registry.all_of<Invulnerable>(*b)) {
 							health.current--;
@@ -229,10 +235,8 @@ namespace GAME {
 						}
 
 						// Check if player is destroyed
-						if (health.current <= 0)
-						{
+						if (health.current <= 0) {
 							registry.emplace_or_replace<toDestroy>(*b);
-							std::cout << "Player destroyed! Game Over!" << std::endl;
 						}
 					}
 				}
@@ -270,7 +274,7 @@ namespace GAME {
 						auto& transform = registry.get<Transform>(enemyEntity);
 
 						// Get shatter configuration from config file
-						
+
 						int shatterAmount = 2; // Default value
 						float shatterScale = 0.7f; // Default value
 						try {
@@ -310,7 +314,7 @@ namespace GAME {
 							GW::MATH::GVECTORF scale = { shatterScale, shatterScale, shatterScale };
 							GW::MATH::GMatrix::ScaleGlobalF(newTransform.matrix, scale, newTransform.matrix);
 
-							
+
 							GW::MATH::GVECTORF newDirection = UTIL::GetRandomVelocityVector();
 							GW::MATH::GVector::NormalizeF(newDirection, newDirection);
 
@@ -355,6 +359,7 @@ namespace GAME {
 					}
 				}
 			}
+			//CheckGameOverCondition(registry);
 			// Update GPU instances from Transform components 
 			UpdateGPUInstances(registry);
 		}
