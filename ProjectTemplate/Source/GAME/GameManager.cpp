@@ -72,7 +72,6 @@ namespace GAME {
 
 	void UpdateGameManager(entt::registry& registry, float deltaTime) {
 		if (!registry.view<GameOver>().empty()) {
-			std::cout << "Game is over - skipping game systems, rendering continues" << std::endl;
 			return; // Skip all game systems but allow rendering to continue
 		}
 		std::shared_ptr<const GameConfig> config = registry.ctx().get<UTIL::Config>().gameConfig;
@@ -198,8 +197,7 @@ namespace GAME {
 							}
 						}
 						else {
-							std::cout << "Player is invulnerable, no damage taken." << std::endl;
-						}
+							}
 					}
 					if (registry.all_of<Player>(*b) && registry.all_of<Enemy>(*a)) {
 						// Damage the player if not invulnerable
@@ -222,8 +220,7 @@ namespace GAME {
 							}
 						}
 						else {
-							std::cout << "Player is invulnerable, no damage taken." << std::endl;
-						}
+							}
 					}
 				}
 			}
